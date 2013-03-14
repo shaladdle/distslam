@@ -1,0 +1,6 @@
+proposal/*.aux
+proposal/*.log
+proposal/*.pdf
+
+*.swp
+*.swo
