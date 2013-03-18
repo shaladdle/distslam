@@ -10,20 +10,31 @@
 15-780 Final Project Proposal \\ 
 Distributed Simultaneous Localization And Mapping \\
 }
+
 \author{Adam Wright, Nathan Slobody, Tim Kuehn}
 
 \begin{document}
 
 \maketitle
 
-\section{Description}
+\section{Introduction}
+
+Robot perception is an important requirement for intelligent autonomous robots. For a robot to be able to use a search technique like $A*$ to find a path through an environment, or use some kind of planning to execute that path, the robot must first have a map of its environment. Some applications of robotics, such as search and rescue or indoor fire fighting do not have the luxury of having an accurate map beforehand. Simultaneous Localization And Mapping (SLAM) techniques, which build maps based only on sensor measurements, allow autonomous robots in these applications to succeed. Some applications, such as search and rescue, would benefit from using multiple robots to cover a wide area quickly. 
+
+In this project, we will study robot perception by learning about and implementing multi-robot Simultaneous Localization And Mapping (SLAM). In particular we will focus on how robots share and combine their data and local maps to produce a single map of the environment all robots have explored thus far. Our goal is to implement a technique that does not add significant computing burden to the single-robot SLAM algorithm.
+
+Professor Veloso has agreed to provide us with two robots from her lab. We will use some simple method of landmark identification such as touch sensors using an iRobot Create bumper 
+
+We have the following logistics
+
+We want to answer several questions
 
 \begin{itemize}
-    \item Multiple robots map out the same environment, having no prior information about the environment
+    \item What should the starting conditions be? Should robots be allowed to know their initial locations?
 
-    \item Does having multiple robots do it increase the accuracy of the map?
+    \item Does having multiple robots perform SLAM on slightly overlapping areas produce good quality maps in less time? How does this compare to a single robot?
 
-    \item Does having multiple robots do it increase the speed at which you can map?
+    \item How much more accuracy can you get from multiple robots mapping out heavily overlapping areas at the same time?
 
     \item How do we merge the maps? Veloso described an approach where multiple robots start in different locations and fuse their maps when they meet.
         \begin{itemize}
