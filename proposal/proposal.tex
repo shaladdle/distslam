@@ -46,24 +46,42 @@ Distributed Simultaneous Localization And Mapping \\
 
 \end{itemize}
 
-\section{Schedule/Plan}
+\section*{Project Plan}
 
+\paragraph{75\%}
 \begin{itemize}
-    \item This week: meet with Manuela Veloso's student to learn how to use the robots and ascertain what capabilities they have.  This will determine a substantial part of the methodology.
-    \item Read papers / background material
-    \item Determine how landmarks will be represented: april tags, something more sophisticated with feature extraction by sensors, something as simple as possible with bump sensors, etc.
-    \item Set up a testing location for the robots to map - either an artificial maze, a part of one of the GHC floors, etc.
-    \item Learn or write any necessary control, navigation, communication or systems software for working with the robots
-    \item Get SLAM working with a single robot
-    \item Get a potentially naive distributed SLAM implementation working
-    \item Potentially get some more sophisticated version working
-
-        \section{References}
-\begin{itemize}
-    \item Probabilistic Robotics
-    \item Papers....
-
+    \item Ascertain CreBot capabilities: what sensors are included (bumb, rangefinder, vision, etc), what onboard computing power is available, and what storage and communication facilities can be used.
+    \item Become familiar with existing literature and research on SLAM, probabilistic tools such as Kalman and particle filters, and distributed / cooperative robotics.
+    \item Determine how landmarks will be represented: april tags, something more sophisticated with feature extraction by sensors, or something as simple as possible with bump sensors.
+    \item Set up a testing location for the robots to map - either an artificial maze, a room in Gates Hillman Center, or another area.
+    \item Learn or write any necessary control, navigation, communication or systems software for working with the robots.
+    \item Write a working SLAM implementation for a single robot.
 \end{itemize}
 
+\paragraph{100\%}
+
+\begin{itemize}
+    \item Work out systems programming details of information sharing between two robots.
+    \item Decide how two robots will merge their maps (e.g. when they have both seen two of the same landmarks).
+    \item Get a potentially naive distributed SLAM implementation working for two robots.
 \end{itemize}
+
+\paragraph{125\%}
+\begin{itemize}
+    \item Iron out any wrinkles in the basic distributed SLAM implementation and get a more sophisticated/reliable/faster version working
+    \item Possibly add an additional robot or two to ascertain the impact on speed and efficiency.
+\end{itemize}
+
+\begin{thebibliography}{12}
+    \bibitem{thrun2005}
+        S. Thrun, W. Burgard, and D. Fox, \emph{Probabilistic Robotics}, MIT Press, 2005.
+
+    \bibitem{thrun2003}
+        S. Thrun and Y. Liu, ``Multi-Robot SLAM with Sparse Extended Information Filters'', \emph{Proceedings of the 11th International Symposium of Robotics Research (ISRR'03)}, 2003.
+
+    \bibitem{cunningham2010}
+        A. Cunningham, M. Paluri, and F. Dellaert, ``DDF-SAM: Fully Distributed SLAM using Constrained Factor Graphs'', \emph{International Conference on Intelligent Robots and Systems (IROS)}, 2010.
+
+\end{thebibliography}
+
 \end{document}
