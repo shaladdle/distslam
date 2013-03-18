@@ -25,7 +25,11 @@ Distributed Simultaneous Localization And Mapping \\
 
     \item Does having multiple robots do it increase the speed at which you can map?
 
-    \item How do we merge the maps? Veloso described an approache where multiple robots start in different locations and fuse their maps when they meet.
+    \item How do we merge the maps? Veloso described an approach where multiple robots start in different locations and fuse their maps when they meet.
+        \begin{itemize}
+            \item One idea is that the robots don't merge their maps until they have seen two landmarks in common, so that they can orient themselves on the shared map.
+        \end{itemize}
+
 \end{itemize}
 
 \section{Implementation}
@@ -34,6 +38,9 @@ Distributed Simultaneous Localization And Mapping \\
     \item Use iRobot Creates
 
     \item We can create some kind of maze and use their touch sensors, or use april tags and get some cheap cameras? My hesitation with using the touch sensors is how do we identify landmarks that we've hit when we hit them again? There's no way of touching a wall twice and saying ``that's the same chunk of wall''.. Or at least I don't get it.
+
+    \item There is also the question of how the robots will communicate and share / store data.  We're not sure it can be done without onboard computers, though MV said that it could.  We're actually not even sure what equipment will come with the robots we're given yet.  
+
 \end{itemize}
 
 \section{Schedule/Plan}
