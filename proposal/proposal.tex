@@ -61,11 +61,15 @@ We want to answer several questions
 
 \paragraph{75\%}
 \begin{itemize}
-    \item Ascertain CreBot capabilities: what sensors are included (bumb, rangefinder, vision, etc), what onboard computing power is available, and what storage and communication facilities can be used.
+    \item Ascertain CreBot capabilities: what sensors are included (bump, rangefinder, vision, etc), what onboard computing power is available, and what storage and communication facilities can be used.
     \item Become familiar with existing literature and research on SLAM, probabilistic tools such as Kalman and particle filters, and distributed / cooperative robotics.
     \item Determine how landmarks will be represented: april tags, something more sophisticated with feature extraction by sensors, or something as simple as possible with bump sensors.
+        \begin{itemize}
+            \item If using april tags, become familiar with their identification vis-a-vis the available sensors
+        \end{itemize}
     \item Set up a testing location for the robots to map - either an artificial maze, a room in Gates Hillman Center, or another area.
     \item Learn or write any necessary control, navigation, communication or systems software for working with the robots.
+    \item Write a simple navigation algorithm for the robot to decide where to go / in what order to traverse the area.
     \item Write a working SLAM implementation for a single robot.
 \end{itemize}
 
@@ -73,13 +77,14 @@ We want to answer several questions
 
 \begin{itemize}
     \item Work out systems programming details of information sharing between two robots.
-    \item Decide how two robots will merge their maps (e.g. when they have both seen two of the same landmarks).
+    \item Decide how two robots will merge their maps (e.g. when they have both seen two of the same landmarks, or when they find that they are next to each other somehow).
     \item Get a potentially naive distributed SLAM implementation working for two robots.
 \end{itemize}
 
 \paragraph{125\%}
 \begin{itemize}
     \item Iron out any wrinkles in the basic distributed SLAM implementation and get a more sophisticated/reliable/faster version working
+    \item Write a more efficient navigation algorithm for the robot to decide where to go / in what order to traverse the area.
     \item Possibly add an additional robot or two to ascertain the impact on speed and efficiency.
 \end{itemize}
 
