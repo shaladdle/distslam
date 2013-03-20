@@ -25,7 +25,7 @@ In this project, we will study robot perception by learning about and implementi
 
 \section{Implementation}
 
-Professor Veloso has agreed to provide us with two iRobot Create-based robots from her lab. We will use some simple method of landmark identification such as touch sensors using an iRobot Create bumper or vision along with an easily recognizable landmarks such as April tags. We can use these sensors along with the odometry from the Create to get all the sensor measurements we need to perform SLAM. 
+Professor Veloso has agreed to provide us with two iRobot Create-based robots from her lab. We will use some simple method of landmark identification such as touch sensors using an iRobot Create bumper or vision along with an easily recognizable landmarks such as April tags. We can use these sensors along with the odometry from the Create to get all the sensor measurements we need to perform SLAM.
 
 So far, we have found some techniques for multi-robot SLAM in the literature based off of Sparse Extended Information Filters (Thrun, \cite{thrun2003}) and Constrained Factor Graphs (Cunningham, \cite{cunningham2010}). After reviewing these techniques and any others we can find, we will choose one and implement it. Cunningham's paper mentions a naive (inefficient) approach in which robots merely share all of their sensor data with all other robots. Some version of this naive approach will be a good starting point for getting communication working, and can serve as a benchmark for comparing later versions of our algorithm that are more efficient.
 
@@ -37,37 +37,35 @@ As of now, we plan to investigate the pros and cons of multi-robot SLAM by answe
 
 \begin{itemize}
     \item What should the starting conditions be? Do the robots need to know their initial locations with high precision/accuracy for this to work?
-
     \item Does having multiple robots perform SLAM on slightly overlapping areas produce good quality maps in less time? How does this compare to a single robot?
-
     \item How much more accuracy can we get from multiple robots mapping out heavily overlapping areas at the same time?
-
 \end{itemize}
 
 \section*{Project Plan}
 
 \paragraph{75\%}
 \begin{itemize}
-    \item Ascertain CreBot capabilities: what sensors are included (bump, rangefinder, vision, etc), what onboard computing power is available, and what storage and communication facilities can be used.
     \item Become familiar with existing literature and research on SLAM, probabilistic tools such as Kalman and particle filters, and distributed / cooperative robotics.
-    \item Determine how landmarks will be represented: april tags, something more sophisticated with feature extraction by sensors, or something as simple as possible with bump sensors.
-    \item Set up a testing location for the robots to map - either an artificial maze, a room in Gates Hillman Center, or another area.
-    \item Learn or write any necessary control, navigation, communication or systems software for working with the robots.
-    \item Write a working SLAM implementation for a single robot.
+    \item Create a simple robot simulator. This simulator will have some simple motion model for a two wheeled differential drive robot, as well as sensor model that can provide measurement vectors (ie robot position minus landmark position)
+    \item Implement SLAM in this simulator. Use a filter that will facilitate expanding to use multiple robots, assume we can identify landmarks and also make a measurement of that landmark's relative position to the robot
 \end{itemize}
 
 \paragraph{100\%}
 
 \begin{itemize}
-    \item Work out systems programming details of information sharing between two robots.
-    \item Decide how two robots will merge their maps (e.g. when they have both seen two of the same landmarks).
-    \item Get a potentially naive distributed SLAM implementation working for two robots.
+    \item Expand our single robot SLAM to be distributed in simulation
+    \begin{itemize}
+        \item Communication will be done using TCP so this can be expanded to actual robots. We will assume robots can always communicate, and add another step to the main loop, where robots share/merge their maps.
+        \item Merge maps by looking for two landmarks that appear in both robot's maps, and then fusing the map along those landmarks. Two landmarks should be enough information, since we can completely determine location and orientation of the two maps relative to each other.
+        \item We can use some kind of average to compute the position of landmarks that appear in both maps.
+    \end{itemize}
 \end{itemize}
 
 \paragraph{125\%}
 \begin{itemize}
-    \item Iron out any wrinkles in the basic distributed SLAM implementation and get a more sophisticated/reliable/faster version working
-    \item Possibly add an additional robot or two to ascertain the impact on speed and efficiency.
+    \item Relax the assumption that tags can be uniquely identified using sensors. This will make the map merging problem much more difficult. We could look to literature for some methods for merging maps without this assumption
+    \item Get SLAM running on real robots using augmented reality (AR) tags as landmarks. These tags' relative position to the robot can be easily detected from different angles. Create a maze with a sufficient number of landmarks in the hallways of gates
+    \item Implement a simple intelligence that aims to explore the entire map. This could simply be a greedy algorithm that points the robot at locations that are unexplored.
 \end{itemize}
 
 \begin{thebibliography}{12}
