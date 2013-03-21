@@ -4,3 +4,6 @@ proposal/*.pdf
 
 *.swp
 *.swo
+
+*.o
+distslam
