@@ -14,6 +14,12 @@ class Landmark {
         int id;
 };
 
+class Pose {
+    public:
+        Point position;
+        float orientation;
+};
+
 class Odometry {
     public:
         Point translation;
