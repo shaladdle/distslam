@@ -8,8 +8,14 @@ void Simulator::ExecMotorCmd(float lspeed, float rspeed, float duration) {
     std::cout << "Inside simulator ExecMotorCmd" << std::endl;
 }
 
-std::vector<Point> Simulator::SenseLandmarks() {
+Odometry Simulator::ReadOdometry() {
+    std::cout << "Inside simulator ReadOdometry" << std::endl;
+
+    return Odometry();
+}
+
+std::vector<Landmark> Simulator::SenseLandmarks() {
     std::cout << "Inside simulator ExecMotorCmd" << std::endl;
 
-    return std::vector<Point>();
+    return std::vector<Landmark>();
 }

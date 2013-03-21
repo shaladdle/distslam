@@ -11,14 +11,16 @@ void Agent::DoLoop() {
 
         world->ExecMotorCmd(0, 0, 0);
 
-        std::cout << "Phase 3: Read odometry" << std::endl
-                  << "Phase 4: Kalman predict" << std::endl
+        std::cout << "Phase 3: Read odometry" << std::endl;
+
+        world->ReadOdometry();
+
+        std::cout << "Phase 4: Kalman predict" << std::endl
                   << "Phase 5: Read sensors" << std::endl;
 
         world->SenseLandmarks();
 
         std::cout << "Phase 6: Kalman update" << std::endl;
-
 
         sleep(1);
     }

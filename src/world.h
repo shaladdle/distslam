@@ -8,6 +8,12 @@ class Point {
         float x, y;
 };
 
+class Landmark {
+    public:
+        Point location;
+        int id;
+};
+
 class Odometry {
     public:
         Point translation;
@@ -17,7 +23,8 @@ class Odometry {
 class World {
     public:
         virtual void ExecMotorCmd(float lspeed, float rspeed, float duration) = 0;
-        virtual std::vector<Point> SenseLandmarks() = 0;
+        virtual Odometry ReadOdometry() = 0;
+        virtual std::vector<Landmark> SenseLandmarks() = 0;
 };
 
 #endif

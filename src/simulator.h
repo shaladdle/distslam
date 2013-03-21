@@ -8,7 +8,8 @@
 class Simulator : public World {
     public:
         void ExecMotorCmd(float lspeed, float rspeed, float duration);
-        std::vector<Point> SenseLandmarks();
+        Odometry ReadOdometry();
+        std::vector<Landmark> SenseLandmarks();
 };
 
 #endif
