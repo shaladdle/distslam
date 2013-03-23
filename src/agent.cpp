@@ -9,7 +9,7 @@ void Agent::DoLoop() {
                   << "Phase 1: Do planning" << std::endl
                   << "Phase 2: Motor commands" << std::endl;
 
-        world->ExecMotorCmd(0, 0, 0);
+        world->ExecMotorCmd(100, 50, 10);
 
         std::cout << "Phase 3: Read odometry" << std::endl;
 
