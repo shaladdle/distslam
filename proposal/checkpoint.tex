@@ -1,0 +1,146 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+
+% Always place footnotes at the bottom of the page
+\usepackage[bottom]{footmisc}
+
+\title{
+15-780 Final Project \\ 
+Distributed Simultaneous Localization And Mapping \\
+Milestone Progress
+}
+
+\author{Adam Wright, Nathan Slobody, Tim Kuehn}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+In order to apply path planning algorithms it is important for robots to have a map of their enviornment. Our project is to implement SLAM for multiple robots in the same environments. We aim to implement a SLAM algorithm that can be run on multiple robots to speed up the process of mapping an environment. 
+
+\section{Progress: 75\% Goal}
+
+\begin{itemize}
+    \item \emph{Become familiar with existing literature and research on SLAM, probabilistic tools such as Kalman and particle filters, and distributed / cooperative robotics.}
+
+        We have done some study on Kalman filters, and started a basic implementation in code. We chose a simple system model with the following state transition equation:
+        $$\vec{x}_{k+1} = F_k x_k + G_k \vec{u}_k$$
+        where $\vec{x}_k$ is entire system state at time $k$, $\vec{u}_k$ is the motion command given at time $k$ (often odometry ise used for $\vec{u}$. $F_k$ is the state transition model, and $G_k$ is the motion model. We also have an equation that describes measurements in the system:
+        $$\vec{z}_k = H_k \vec{x}_k$$
+        $\vec{z}_k$ is the measurement made at time $k$, and $H_k$ is describes the measurement as a function of the current state of the system.
+        \[ 
+        \begin{array}{ccc}
+            \vec{x}_k = 
+            \left[
+                \begin{array}{c} 
+                    x_r(k) \\
+                    y_r(k) \\
+                    \theta_r \\
+                    \vdots \\
+                    x_1 \\
+                    y_1 \\
+                    \vdots \\
+                    x_n \\
+                    y_n \\
+                \end{array}
+            \right] &  
+            \vec{u}_k = 
+            \left[
+                \begin{array}{c} 
+                    \Delta x_r \\
+                    \Delta y_r \\
+                    \Delta \theta_r
+                \end{array}
+            \right] &  
+            \vec{z}_k = 
+            \left[
+                \begin{array}{c} 
+                    x_1 \\
+                    y_1 \\
+                    \vdots \\
+                    x_n \\
+                    y_n \\
+                \end{array}
+            \right] \\
+        \end{array}
+        \]
+        where $(x_r(k),y_r(k),\theta_r(k))$ is the robot's pose at time $k$, and $(x_i,y_i)$ is the position of the $i$th landmark. We also take $\vec{u}_k$ to simply be the change in pose from time $k-1$ to time $k$. Similarly to the state vector, $\vec{z}_k$ is just measurements of the landmarks in the global coordinate frame. With this model, $F$ will just be the identity matrix, and $G$ will be a $3\times 3$ identity matrix with a $n\times 3$ matrix of 0's appended to the bottom, to maintain proper array sizes. 
+
+        While this model is good as a first pass, we are focusing a little more on recent approaches now, such as smoothing and mapping (SAM), which estimates both the landmark positions and the entire robot trajectory, not just the robot's current pose, and handles non-linear systems. Professor Veloso suggested we implement DDF-SAM, so we are currently learning about the least squares and graph techniques used for doing SAM on a single robot from \cite{dellaertsam}.
+
+        SAM, often based on square root information filtering (SRIF) can have advantages in that the matrices involved in update computations are usually sparse, whereas the comparable extended Kalman filter (EKF) approach can require matrix computations on large dense matrices \cite{dellaertsam} \cite{isam1}.
+
+    \item \emph{Create a simple robot simulator. This simulator will have some simple motion model for a two wheeled differential drive robot, as well as sensor model that can provide measurement vectors (ie robot position minus landmark position)}
+
+        We will use a simple graphical python library to show the robot in a 2D world, along with annotations like robot trajectory, robot and landmark position errors, etc.. The robot will be driven using simple controls like arrow keys.
+
+        We can interface the robot's intelligence with the the simulator through the following interface (functions are filled in with simple pseudocode according to the above model for now):
+
+\begin{verbatim}
+def do_motors(u):
+    x_r += u.dx         # x
+    y_r += u.dy         # y
+    theta_r += u.dtheta # theta
+
+def sense():
+    z = []
+    for l in landmarks:
+        z.append(l.x)
+        z.append(l.y)
+        
+    return z
+\end{verbatim}
+where we assume \texttt{x\_r}, \texttt{y\_r}, \texttt{theta\_r}, and \texttt{landmarks} are global or class member variables that only the simulator can access. The robot will use these two functions to gather sensor information and move around in the world
+        
+    \item Implement SLAM in this simulator. Use a filter that will facilitate expanding to use multiple robots, assume we can identify landmarks and also make a measurement of that landmark's relative position to the robot
+\end{itemize}
+
+We have also laid out a bit of framework for how a Kalman filter based SLAM implementation would work, given the model described above. Since we are focusing more on SAM, we might abandon the Kalman filter based implementation, but it might also be a good stepping stone towards the more complex least squares based approach. 
+
+We are also investigating an iSAM implementation by Michael Keass \cite{isam1} that's available on openslam.org. It might turn out that doing some kind of C++ based implementation would be a better choice, given that there is already code available.
+
+\section{Progress: 100\% Goal}
+
+\begin{itemize}
+    \item \emph{Expand our single robot SLAM to be distributed in simulation}
+    \begin{itemize}
+        \item \emph{Communication will be done using TCP so this can be expanded to actual robots. We will assume robots can always communicate, and add another step to the main loop, where robots share/merge their maps.}
+        \item \emph{Merge maps by looking for two landmarks that appear in both robot's maps, and then fusing the map along those landmarks. Two landmarks should be enough information, since we can completely determine location and orientation of the two maps relative to each other.}
+        \item \emph{We can use some kind of average to compute the position of landmarks that appear in both maps.}
+    \end{itemize}
+\end{itemize}
+
+We are still in the process of getting single robot SLAM working, although we are developing our software with the multi-robot implementation in mind. Implementing SAM on a single robot should work well, since we can expand to using DDF-SAM as described in \cite{cunningham2010}.
+
+\section{Progress: 125\% Goal}
+\begin{itemize}
+    \item \emph{Relax the assumption that tags can be uniquely identified using sensors. This will make the map merging problem much more difficult. We could look to literature for some methods for merging maps without this assumption}
+    \item \emph{Get SLAM running on real robots using augmented reality (AR) tags as landmarks. These tags' relative position to the robot can be easily detected from different angles. Create a maze with a sufficient number of landmarks in the hallways of gates}
+    \item \emph{Implement a simple intelligence that aims to explore the entire map. This could simply be a greedy algorithm that points the robot at locations that are unexplored.}
+\end{itemize}
+
+We have not made progress on our 125\% goals. At the moment we are most interested in implementing some kind of path planning based on the map we build.
+
+\begin{thebibliography}{12}
+    \bibitem{thrun2005}
+        S. Thrun, W. Burgard, and D. Fox, \emph{Probabilistic Robotics}, MIT Press, 2005.
+
+    \bibitem{thrun2003}
+        S. Thrun and Y. Liu, ``Multi-Robot SLAM with Sparse Extended Information Filters'', \emph{Proceedings of the 11th International Symposium of Robotics Research (ISRR'03)}, 2003.
+
+    \bibitem{cunningham2010}
+        A. Cunningham, M. Paluri, and F. Dellaert, ``DDF-SAM: Fully Distributed SLAM using Constrained Factor Graphs'', \emph{International Conference on Intelligent Robots and Systems (IROS)}, 2010.
+
+    \bibitem{dellaertsam}
+        F. Dellaert and M. Kaess, ``Square Root SAM: Simultaneous localization and mapping via square root information smoothing'', \emph{International Journal of Robotics Reasearch}, 2006.
+
+    \bibitem{isam1}
+        M. Kaess and A. Ranganathan et al, ``iSAM: Incremental Smoothing and Mapping'', \emph{IEEE Transactions on Robotics}, 2008.
+
+\end{thebibliography}
+
+\end{document}
