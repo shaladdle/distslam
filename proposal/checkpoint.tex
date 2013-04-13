@@ -82,25 +82,27 @@ In order to apply path planning algorithms it is important for robots to have a 
 
 \begin{verbatim}
 def do_motors(u):
-    x_r += u.dx         # x
-    y_r += u.dy         # y
+    x_r += u.dx + gaussian_noise()        # x
+    y_r += u.dy + gaussian_noise()        # y
     theta_r += u.dtheta # theta
 
 def sense():
     z = []
     for l in landmarks:
-        z.append(l.x)
-        z.append(l.y)
+        z.append(l.x + gaussian_noise())
+        z.append(l.y + gaussian_noise())
         
     return z
 \end{verbatim}
-where we assume \texttt{x\_r}, \texttt{y\_r}, \texttt{theta\_r}, and \texttt{landmarks} are global or class member variables that only the simulator can access. The robot will use these two functions to gather sensor information and move around in the world.
+where we assume \texttt{x\_r}, \texttt{y\_r}, \texttt{theta\_r}, and \texttt{landmarks} are global or class member variables that only the simulator can access. The robot will use these two functions to gather sensor information and move around in the world. The implementation
+will actually abstract the noise from the sensor readings themselves; the sensors wouldn't, in practice, actually know they were adding
+noise. But that's an implementation detail that doesn't affect the end result. 
         
     \item Implement SLAM in this simulator. Use a filter that will facilitate expanding to use multiple robots, assume we can identify landmarks and also make a measurement of that landmark's relative position to the robot
 
 We have also laid out a bit of framework for how a Kalman filter based SLAM implementation would work, given the model described above. Since we are focusing more on SAM, we might abandon the Kalman filter based implementation, but it might also be a good stepping stone towards the more complex least squares based approach. 
 
-We are also investigating an iSAM implementation by Michael Keass \cite{isam1} that's available on openslam.org. It might turn out that doing some kind of C++ based implementation would be a better choice, given that there is already code available.
+We are also investigating an iSAM implementation by Michael Keass \cite{isam1} that's available on openslam.org. It might turn out that doing some kind of C++ based implementation would be a better choice, given that there is already code available. Though this is not likely.
 
 \end{itemize}
 \section{Progress: 100\% Goal}
