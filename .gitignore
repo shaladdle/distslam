@@ -7,3 +7,6 @@ proposal/*.pdf
 
 *.o
 distslam
+
+*.pyc
+__pycache__
