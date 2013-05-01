@@ -1,10 +1,6 @@
 import graphics as g
 import numpy as np
 
-def pt_to_mat(p):
-    print("hi")
-    
-
 def addP(a, b):
     return g.Point(a.x + b.x, a.y + b.y)
 
@@ -57,3 +53,15 @@ class Simulator:
             ret.append([l.center.y])
 
         return np.matrix(ret) + (self.sense_noise * np.random.randn(len(self.landmarks) * 2,1))
+
+    def get_true_state(self):
+        ret = []
+
+        ret.append([self.robot_pos.x])
+        ret.append([self.robot_pos.y])
+
+        for l in self.landmarks:
+            ret.append([l.center.x])
+            ret.append([l.center.y])
+
+        return np.matrix(ret)
