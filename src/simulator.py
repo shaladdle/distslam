@@ -1,12 +1,25 @@
 import graphics as g
 import numpy as np
 
+def pt_to_mat(p):
+    print("hi")
+    
+
 def addP(a, b):
     return g.Point(a.x + b.x, a.y + b.y)
 
+class Landmark:
+    def __init__(self, win, ident, rad, center):
+        self.ident = ident
+        self.center = center
+        self.rad = rad
+
+        self.win = win
+        self.circ = g.Circle(center, rad)
+        self.circ.draw(win)
+
 class Simulator:
     def __init__(self, win, start_pt, width, height):
-
         self.motion_noise = 0.2
         self.sense_noise = 0.01
 
@@ -27,6 +40,9 @@ class Simulator:
         self.robotrect = g.Rectangle(self.topc, self.botc)
         self.robotrect.draw(self.win)
 
+    def set_landmarks(self, landmarks):
+        self.landmarks = landmarks
+
     def do_motors(self, u):
         u += self.motion_noise * np.random.randn(2,1)
         dx = u[0][0]
@@ -35,8 +51,9 @@ class Simulator:
         self.robotrect.move(dx, dy)
 
     def sense(self):
-        ret = np.zeros((2,1))
-        ret[0][0] = self.robot_pos.x
-        ret[1][0] = self.robot_pos.y
+        ret = []
+        for l in self.landmarks:
+            ret.append([l.center.x])
+            ret.append([l.center.y])
 
-        return ret + (self.sense_noise * np.random.randn(2,1))
+        return np.matrix(ret) + (self.sense_noise * np.random.randn(len(self.landmarks) * 2,1))
