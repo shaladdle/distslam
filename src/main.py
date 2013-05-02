@@ -9,12 +9,13 @@ class Cobot:
     def __init__(self, P, u=None, x=None):
         self.P = P
         if u is None:
-            self.u = np.zeros((2, 1))
+            self.u = np.zeros((3, 1))
             self.u.fill(1)
         if x is None:
-            self.x = np.zeros((len(lm) * 2 + 2,1))
+            self.x = np.zeros((len(lm) * 2 + 3,1))
             self.x[0][0] = 200 + random.randrange(-width / 2, width / 2)
             self.x[1][0] = height
+            self.x[2][0] = 0
 
 class EstimateDrawer:
     def __init__(self, win):
@@ -37,20 +38,32 @@ class EstimateDrawer:
             P = np.array(P)
 
             state_x, state_P = [], []
-            for i in range(x.shape[0] // 2):
+            for i in range(1, x.shape[0] // 2):
                 c = g.Circle(g.Point(x[i*2][0], x[i*2+1][0]), 10)
                 c.setOutline("red")
                 c.draw(self.win)
                 state_x.append(c)
+
             self.states.append((state_x, state_P))
 
 
 def kalman_predict(F, G, P, x, u):
+    print(F.shape)
+    print(G.shape)
+    print(P.shape)
+    print(x.shape)
+    print(u.shape)
     x_p = F * x + G * u
     P_p = F * P * F.transpose()
     return (x_p, P_p)
 
 def kalman_update(H, R, P, x, z):
+    print("update")
+    print(H.shape)
+    print(R.shape)
+    print(P.shape)
+    print(x.shape)
+    print(z.shape)
     y = z - H * x
     S = H * P * H.transpose() + R
     K = P * H.transpose() * np.linalg.inv(S)
@@ -64,23 +77,24 @@ def getR(z):
     return np.matrix(np.identity(z.shape[0]))
 
 def getH(x, z):
-    a = np.zeros((z.shape[0], 2))
+    a = np.zeros((z.shape[0], 3))
     b = np.identity(z.shape[0])
     ret = np.concatenate((a,b), axis=1)
 
     return np.matrix(ret)
 
 def getG(x, u):
-    ret = [[1,0],
-           [0,1]]
+    ret = [[1,0,0]
+          ,[0,1,0]
+          ,[0,0,1]]
 
-    for i in range(x.shape[0] - 2):
-        ret.append([0, 0])
+    for i in range(x.shape[0] - 3):
+        ret.append([0, 0, 0])
 
     return np.matrix(ret)
 
 def getF(x):
-    return np.matrix(np.identity((x.shape[0])))
+    return np.matrix(np.identity(x.shape[0]))
 
 if __name__ == "__main__":
     global width, height, lm
@@ -105,15 +119,16 @@ if __name__ == "__main__":
 
     # set initial state and covariance matrix
     numbots = 2
-    P = np.identity(len(lm) * 2 + 2) * 10
+    P = np.identity(len(lm) * 2 + 3) * 10
     P[0][0] = 100
     P[1][1] = 100
+    P[2][2] = 100
     P = np.matrix(P)
     cobot_sim = []
     for _ in range(numbots):
         cobot = Cobot(P)
         coords = np.array(cobot.x)
-        sim = Simulator(win, g.Point(coords[0][0], coords[1][0]), width, height)
+        sim = Simulator(win, g.Point(coords[0][0], coords[1][0]), coords[2][0], width, height)
         sim.set_landmarks(lm)
         cobot_sim.append((cobot, sim))
 
