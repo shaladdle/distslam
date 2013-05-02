@@ -43,28 +43,33 @@ class Simulator:
     def do_motors(self, u):
         u = np.array(u)
         u += self.motion_noise * np.random.randn(3,1)
+        print("u after noise " + str(u))
+
+        print("self.robot_pos.x " + str(self.robot_pos.x))
+        print("self.robot_pos.y " + str(self.robot_pos.y))
 
         # math coordinates
         math_x = self.robot_pos.x + u[0][0]
         math_y = -self.robot_pos.y + u[1][0]
         math_hdg = -self.robot_hdg + u[2][0]
-
-        # update the robot position in graphics frame
-        self.robot_pos.x = math_x
-        self.robot_pos.y = math_y
-        self.robot_hdg = math_hdg
+        print("math_hdg\n" + str(math_hdg))
 
         rotmat = np.matrix([[cos(math_hdg), -sin(math_hdg)]
                            ,[sin(math_hdg),  cos(math_hdg)]
                            ])
+        print("rotmat\n" + str(rotmat))
 
         # the position of the robot in math frame
         math_pos = np.matrix([[math_x]
                              ,[math_y]])
+        print("math_pos\n" + str(math_pos))
 
         # compute the box points unrotated
         math_topc = np.matrix([[math_x - 10], [math_y + 15]])
         math_botc = np.matrix([[math_x + 10], [math_y - 15]])
+        print("math_topc\n" + str(math_topc))
+        print("math_botc\n" + str(math_botc))
+        print("before rotation")
 
         # put the points at the origin
         math_topc -= math_pos
@@ -77,6 +82,9 @@ class Simulator:
         # put the points back to wherever they go
         math_topc += math_pos
         math_botc += math_pos
+        print("math_topc\n" + str(math_topc))
+        print("math_botc\n" + str(math_botc))
+        print("after rotation")
 
         # graphics coordinates for the box we will draw
         math_topc = np.array(math_topc)
@@ -85,9 +93,12 @@ class Simulator:
         # turn into points in the graphics frame
         topc_pt = g.Point(math_topc[0][0], -math_topc[1][0])
         botc_pt = g.Point(math_botc[0][0], -math_botc[1][0])
+        print("topc_pt " + str(topc_pt.x) + ", " + str(topc_pt.y))
+        print("botc_pt " + str(botc_pt.x) + ", " + str(botc_pt.y))
 
         # update the robot position
-        self.robot_pos = addP(self.robot_pos, g.Point(math_x, -math_y))
+        self.robot_pos = g.Point(math_x, -math_y)
+        self.robot_hdg += -math_hdg
 
         # redraw the box with the rotated box
         self.robotrect.undraw()

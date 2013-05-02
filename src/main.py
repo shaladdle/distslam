@@ -14,7 +14,7 @@ class Cobot:
         if x is None:
             self.x = np.zeros((len(lm) * 2 + 3,1))
             self.x[0][0] = 200 + random.randrange(-width / 2, width / 2)
-            self.x[1][0] = height
+            self.x[1][0] = 300 # height
             self.x[2][0] = 0
 
 class EstimateDrawer:
@@ -48,22 +48,11 @@ class EstimateDrawer:
 
 
 def kalman_predict(F, G, P, x, u):
-    print(F.shape)
-    print(G.shape)
-    print(P.shape)
-    print(x.shape)
-    print(u.shape)
     x_p = F * x + G * u
     P_p = F * P * F.transpose()
     return (x_p, P_p)
 
 def kalman_update(H, R, P, x, z):
-    print("update")
-    print(H.shape)
-    print(R.shape)
-    print(P.shape)
-    print(x.shape)
-    print(z.shape)
     y = z - H * x
     S = H * P * H.transpose() + R
     K = P * H.transpose() * np.linalg.inv(S)
@@ -158,4 +147,4 @@ if __name__ == "__main__":
 
         ed.draw((cobot.x, cobot.P) for cobot, _ in cobot_sim)
 
-        sleep(0.5)
+        sleep(0.1)
