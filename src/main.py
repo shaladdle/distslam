@@ -33,14 +33,15 @@ class EstimateDrawer:
 
         self.states = []
 
-        for x, P in states:
+        colors = [ "red", "blue" ]
+        for (x, P), color in zip(states, colors):
             x = np.array(x)
             P = np.array(P)
 
             state_x, state_P = [], []
             for i in range(1, x.shape[0] // 2):
                 c = g.Circle(g.Point(x[i*2][0], x[i*2+1][0]), 10)
-                c.setOutline("red")
+                c.setOutline(color)
                 c.draw(self.win)
                 state_x.append(c)
 
@@ -146,5 +147,3 @@ if __name__ == "__main__":
             print(cobot.x)
 
         ed.draw((cobot.x, cobot.P) for cobot, _ in cobot_sim)
-
-        sleep(0.5)

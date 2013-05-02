@@ -105,7 +105,7 @@ class Simulator:
         self.robotrect.draw(self.win)
 
         # update the robot position
-        self.robot_pos = g.Point(math_x, -math_y)
+        self.robot_pos = g.Point(math_x, self.height - math_y)
         self.robot_hdg += -math_hdg
 
     def sense(self):
