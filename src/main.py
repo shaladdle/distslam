@@ -3,6 +3,7 @@ from time import sleep
 from simulator import *
 import graphics as g
 import random
+import curses
 
 class Cobot:
     global width, height, lm
@@ -10,7 +11,6 @@ class Cobot:
         self.P = P
         if u is None:
             self.u = np.zeros((3, 1))
-            self.u.fill(1)
         if x is None:
             self.x = np.zeros((len(lm) * 2 + 3,1))
             self.x[0][0] = 200 + random.randrange(-width / 2, width / 2)
@@ -124,11 +124,12 @@ if __name__ == "__main__":
 
     # this shit should be functions, not a class
     ed = EstimateDrawer(win)
+    ed.draw((cobot.x, cobot.P) for cobot, _ in cobot_sim)
 
-    while(1):
+    def timestep():
         # Close the application if someone closes the graphics window
         if win.isClosed():
-            break
+            return
 
         for cobot, sim in cobot_sim:
             sim.do_motors(cobot.u)
@@ -143,7 +144,46 @@ if __name__ == "__main__":
             R = getR(z)
             cobot.x, cobot.P = kalman_update(H, R, cobot.P, cobot.x, z)
 
-            print('cobot.x:')
-            print(cobot.x)
-
         ed.draw((cobot.x, cobot.P) for cobot, _ in cobot_sim)
+
+    def makeForward(cobot):
+        def goForward(event):
+            # set velocities
+            cobot.u[1][0] = .4 * sin(cobot.x[2][0])
+            cobot.u[0][0] = .4 * cos(cobot.x[2][0])
+            # then increment time
+            timestep()
+        return goForward
+    
+    def makeStop(cobot):
+        def stop(event):
+            print(cobot)
+            if event.keysym in ('Up', 'w'):
+                cobot.u[:2] = np.zeros((2, 1))
+            if event.keysym in ('Left', 'Right', 'a', 'd'):
+                cobot.u[2][0] = 0
+        return stop
+
+    def makeTurn(cobot, theta):
+        def turn(event):
+            cobot.u[2][0] = theta
+            timestep()
+        return turn
+
+    cobots = list(zip(*cobot_sim))[0]
+    win.bind("<KeyPress-w>", makeForward(cobots[1]))
+    win.bind("<KeyRelease-w>", makeStop(cobots[1]))
+    win.bind("<KeyPress-a>", makeTurn(cobots[1], .05))
+    win.bind("<KeyPress-d>", makeTurn(cobots[1], -.05))
+    win.bind("<KeyRelease-a>", makeStop(cobots[1]))
+    win.bind("<KeyRelease-d>", makeStop(cobots[1]))
+    win.bind("<KeyPress-Up>", makeForward(cobots[0]))
+    win.bind("<KeyRelease-Up>", makeStop(cobots[0]))
+    win.bind("<KeyPress-Left>", makeTurn(cobots[0], .05))
+    win.bind("<KeyPress-Right>", makeTurn(cobots[0], -.05))
+    win.bind("<KeyRelease-Left>", makeStop(cobots[0]))
+    win.bind("<KeyRelease-Right>", makeStop(cobots[0]))
+    win.pack()
+    win.focus_set()
+    win.mainloop()
+    

@@ -59,7 +59,15 @@ class Simulator:
 
     def do_motors(self, u):
         u = np.array(u)
-        u += self.motion_noise * np.random.randn(3,1)
+        noise = np.random.randn(3, 1)
+        noise[2][0] /= 10
+        if (u[0][0] == u[1][0] == 0):
+            noise[0][0] = 0
+            noise[1][0] = 0
+        if (u[2][0] == 0):
+            noise[2][0] = 0
+            
+        u += self.motion_noise * noise
         """
         print("u after noise " + str(u))
 
@@ -105,11 +113,11 @@ class Simulator:
                   , np.matrix([[math_x + 10], [math_y + 15]])
                   ]
 
-        corners_local_frame =    (corner - math_pos for corner in corners)
-        corners_local_rot =      (rotmat * corner   for corner in corners_local_frame)
-        corners_rot_glob_frame = (corner + math_pos for corner in corners_local_rot)
-        corners_arr_rot_glob   = (np.array(corner)  for corner in corners_rot_glob_frame)
-        cpoints =                (g.Point(corner[0][0], self.height - corner[1][0]) for corner in corners_arr_rot_glob)
+        corners_local_frame =    [corner - math_pos for corner in corners]
+        corners_local_rot =      [rotmat * corner   for corner in corners_local_frame]
+        corners_rot_glob_frame = [corner + math_pos for corner in corners_local_rot]
+        corners_arr_rot_glob   = [np.array(corner)  for corner in corners_rot_glob_frame]
+        cpoints =                [g.Point(corner[0][0], self.height - corner[1][0]) for corner in corners_arr_rot_glob]
 
         # redraw the box with the rotated box
         self.robotrect.undraw()
