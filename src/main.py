@@ -152,7 +152,6 @@ if __name__ == "__main__":
             cobot.u[1][0] = .4 * sin(cobot.x[2][0])
             cobot.u[0][0] = .4 * cos(cobot.x[2][0])
             # then increment time
-            timestep()
         return goForward
     
     def makeStop(cobot):
@@ -167,7 +166,6 @@ if __name__ == "__main__":
     def makeTurn(cobot, theta):
         def turn(event):
             cobot.u[2][0] = theta
-            timestep()
         return turn
 
     cobots = list(zip(*cobot_sim))[0]
@@ -185,5 +183,6 @@ if __name__ == "__main__":
     win.bind("<KeyRelease-Right>", makeStop(cobots[0]))
     win.pack()
     win.focus_set()
-    win.mainloop()
     
+    while True:
+        timestep()
