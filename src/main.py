@@ -149,9 +149,13 @@ if __name__ == "__main__":
     def makeForward(cobot):
         def goForward(event):
             # set velocities
-            cobot.u[1][0] = .4 * sin(cobot.x[2][0])
-            cobot.u[0][0] = .4 * cos(cobot.x[2][0])
-            # then increment time
+            if event.keysym in ('Up', 'w'):
+                cobot.u[1][0] = .4 * sin(cobot.x[2][0])
+                cobot.u[0][0] = .4 * cos(cobot.x[2][0])
+            elif event.keysym in ('a', 'd', 'Left', 'Right'):
+                speed = np.linalg.norm(cobot.u[:2])
+                cobot.u[1][0] = speed * sin(cobot.x[2][0])
+                cobot.u[0][0] = speed * cos(cobot.x[2][0])
         return goForward
     
     def makeStop(cobot):
@@ -163,22 +167,25 @@ if __name__ == "__main__":
                 cobot.u[2][0] = 0
         return stop
 
-    def makeTurn(cobot, theta):
+    def makeTurn(cobot, theta, forward):
         def turn(event):
             cobot.u[2][0] = theta
+            forward(event)
         return turn
 
     cobots = list(zip(*cobot_sim))[0]
-    win.bind("<KeyPress-w>", makeForward(cobots[1]))
+    forward = makeForward(cobots[1])
+    win.bind("<KeyPress-w>", forward)
     win.bind("<KeyRelease-w>", makeStop(cobots[1]))
-    win.bind("<KeyPress-a>", makeTurn(cobots[1], .05))
-    win.bind("<KeyPress-d>", makeTurn(cobots[1], -.05))
+    win.bind("<KeyPress-a>", makeTurn(cobots[1], .05, forward))
+    win.bind("<KeyPress-d>", makeTurn(cobots[1], -.05, forward))
     win.bind("<KeyRelease-a>", makeStop(cobots[1]))
     win.bind("<KeyRelease-d>", makeStop(cobots[1]))
-    win.bind("<KeyPress-Up>", makeForward(cobots[0]))
+    forward = makeForward(cobots[0])
+    win.bind("<KeyPress-Up>", forward)
     win.bind("<KeyRelease-Up>", makeStop(cobots[0]))
-    win.bind("<KeyPress-Left>", makeTurn(cobots[0], .05))
-    win.bind("<KeyPress-Right>", makeTurn(cobots[0], -.05))
+    win.bind("<KeyPress-Left>", makeTurn(cobots[0], .05, forward))
+    win.bind("<KeyPress-Right>", makeTurn(cobots[0], -.05, forward))
     win.bind("<KeyRelease-Left>", makeStop(cobots[0]))
     win.bind("<KeyRelease-Right>", makeStop(cobots[0]))
     win.pack()
