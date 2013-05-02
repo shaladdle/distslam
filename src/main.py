@@ -24,6 +24,7 @@ class EstimateDrawer:
         self.states = []
 
     def draw(self, states):
+        global height
         for x, P in self.states:
             for item in x:
                 item.undraw()
@@ -39,8 +40,8 @@ class EstimateDrawer:
             P = np.array(P)
 
             state_x, state_P = [], []
-            for i in range(1, x.shape[0] // 2):
-                c = g.Circle(g.Point(x[i*2][0], x[i*2+1][0]), 10)
+            for i in range(3, (x.shape[0] - 3) // 2):
+                c = g.Circle(g.Point(x[i*2][0], height - x[i*2+1][0]), 10)
                 c.setOutline(color)
                 c.draw(self.win)
                 state_x.append(c)
@@ -146,4 +147,5 @@ if __name__ == "__main__":
             print('cobot.x:')
             print(cobot.x)
 
+        sleep(1)
         ed.draw((cobot.x, cobot.P) for cobot, _ in cobot_sim)

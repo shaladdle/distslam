@@ -113,7 +113,7 @@ class Simulator:
         ret = []
         for l in self.landmarks:
             ret.append([l.center.x])
-            ret.append([l.center.y])
+            ret.append([self.height - l.center.y])
 
         return np.matrix(ret) + (self.sense_noise * np.random.randn(len(self.landmarks) * 2,1))
 
