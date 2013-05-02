@@ -2,6 +2,22 @@ import graphics as g
 import numpy as np
 from math import cos, sin
 
+class FourRectangle:
+    def __init__(self, tl, bl, br, tr):
+        self.lines = [ g.Line(tl,bl)
+                     , g.Line(bl,br)
+                     , g.Line(br,tr)
+                     , g.Line(tr,tl)
+                     ]
+
+    def draw(self, win):
+        for l in self.lines:
+            l.draw(win)
+
+    def undraw(self):
+        for l in self.lines:
+            l.undraw()
+
 def addP(a, b):
     return g.Point(a.x + b.x, a.y + b.y)
 
@@ -71,39 +87,26 @@ class Simulator:
         print("math_botc\n({}, {})".format(math_botc[0,0], math_botc[1,0]))
         print("before rotation")
 
-        # put the points at the origin
-        math_topc -= math_pos
-        math_botc -= math_pos
+        corners = [ np.matrix([[math_x - 10], [math_y + 15]])
+                  , np.matrix([[math_x - 10], [math_y - 15]])
+                  , np.matrix([[math_x + 10], [math_y - 15]])
+                  , np.matrix([[math_x + 10], [math_y + 15]])
+                  ]
 
-        # rotate around the origin
-        math_topc = rotmat * math_topc
-        math_botc = rotmat * math_botc
+        corners_local_frame =    [corner - math_pos for corner in corners]
+        corners_local_rot =      [rotmat * corner   for corner in corners_local_frame]
+        corners_rot_glob_frame = [corner + math_pos for corner in corners_local_rot]
+        corners_arr_rot_glob   = [np.array(corner)  for corner in corners_rot_glob_frame]
+        cpoints =                [g.Point(corner[0][0], self.height - corner[1][0]) for corner in corners_arr_rot_glob]
 
-        # put the points back to wherever they go
-        math_topc += math_pos
-        math_botc += math_pos
-        print("math_topc\n({}, {})".format(math_topc[0,0], math_topc[1,0]))
-        print("math_botc\n({}, {})".format(math_botc[0,0], math_botc[1,0]))
-        print("after rotation")
-
-        # graphics coordinates for the box we will draw
-        math_topc = np.array(math_topc)
-        math_botc = np.array(math_botc)
-
-        # turn into points in the graphics frame
-        topc_pt = g.Point(math_topc[0][0], self.height - math_topc[1][0])
-        botc_pt = g.Point(math_botc[0][0], self.height - math_botc[1][0])
-        print("topc_pt ({pt.x}, {pt.y})".format(pt=topc_pt))
-        print("botc_pt ({pt.x}, {pt.y})".format(pt=botc_pt))
+        # redraw the box with the rotated box
+        self.robotrect.undraw()
+        self.robotrect = FourRectangle(cpoints[0], cpoints[1], cpoints[2], cpoints[3])
+        self.robotrect.draw(self.win)
 
         # update the robot position
         self.robot_pos = g.Point(math_x, -math_y)
         self.robot_hdg += -math_hdg
-
-        # redraw the box with the rotated box
-        self.robotrect.undraw()
-        self.robotrect = g.Rectangle(topc_pt, botc_pt)
-        self.robotrect.draw(self.win)
 
     def sense(self):
         ret = []
