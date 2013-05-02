@@ -1,6 +1,51 @@
 import graphics as g
 import numpy as np
-from math import cos, sin, pi
+from math import acos, cos, sin, pi, sqrt
+
+def matdist(m1, m2):
+    return sqrt(matdot(m2 - m1, m2 - m1))
+
+def matdot(m1, m2):
+    return np.dot([x[0] for x in np.array(m1)]
+                 ,[x[0] for x in np.array(m1)]
+                 )
+
+def rotate_vector(center, vector, theta):
+    rotmat = np.matrix([[cos(theta), -sin(theta)]
+                       ,[sin(theta),  cos(theta)]
+                       ])
+
+    centvec = np.matrix([[center.x]
+                        ,[center.y]
+                        ])
+
+    vector -= centvec
+
+    rotvec = np.array(rotmat * vector)
+
+    vector -= centvec
+
+def rotate_pt(center, pt, theta):
+    rotmat = np.matrix([[cos(theta), -sin(theta)]
+                       ,[sin(theta),  cos(theta)]
+                       ])
+
+    centvec = np.matrix([[center.x]
+                        ,[center.y]
+                        ])
+
+    vector = np.matrix([[pt.x]
+                       ,[pt.y]
+                       ])
+
+    vector -= centvec
+
+    rotvec = np.array(rotmat * vector)
+
+    rotvec += centvec
+
+    pt.x = rotvec[0][0]
+    pt.y = rotvec[1][0]
 
 class FourRectangle:
     def __init__(self, points):
@@ -36,6 +81,10 @@ class Simulator:
     def __init__(self, win, start_pt, start_hdg, width, height):
         self.motion_noise = 0.2
         self.sense_noise = 0.01
+
+        self.sense_max = 200
+        self.sense_fov = pi / 3
+        self.fov_markers = []
 
         # Start the robot at some provided position, and start it with
         # a heading of 0 (should be pointing east)
@@ -128,13 +177,59 @@ class Simulator:
         self.robot_pos = g.Point(math_x, self.height - math_y)
         self.robot_hdg = -math_hdg % (2 * pi)
 
+    def redraw_fov(self):
+        # need the slope of this vector, so we just just do rise/run
+        norm = sqrt(self.robot_pos.x * self.robot_pos.x + self.robot_pos.y * self.robot_pos.y)
+        newptl = np.matrix([[self.robot_pos.x + norm * sin(self.robot_hdg)]
+                           ,[self.robot_pos.y + norm * cos(self.robot_hdg)]
+                           ])
+        rotate_vector(self.robot_pos, newptl, - self.sense_fov / 2)
+
+        newptr = np.matrix([[self.robot_pos.x + norm * sin(self.robot_hdg)]
+                           ,[self.robot_pos.y + norm * cos(self.robot_hdg)]
+                           ])
+        rotate_vector(self.robot_pos, newptr, self.sense_fov / 2)
+
+        for m in self.fov_markers:
+            m.undraw()
+
+        nparrs = (np.array(x) for x in [newptr, newptl])
+        self.fov_markers = [g.Point(x[0][0], x[1][0]) for x in nparrs]
+
+        for m in self.fov_markers:
+            m.draw(self.win)
+
     def sense(self):
+        self.redraw_fov()
+
+        ids = []
         ret = []
         for l in self.landmarks:
-            ret.append([l.center.x])
-            ret.append([self.height - l.center.y])
+            larr = np.array([[l.center.x]
+                            ,[l.center.y]
+                            ])
 
-        return np.matrix(ret) + (self.sense_noise * np.random.randn(len(self.landmarks) * 2,1))
+            lmat = np.matrix(larr)
+
+            rmat = np.matrix([[self.robot_pos.x]
+                             ,[self.robot_pos.y]
+                             ])
+
+            if np.linalg.norm(lmat - rmat) < 100:
+                # first check angle
+                dotprod = matdot(lmat, rmat)
+                A = np.linalg.norm(lmat)
+                B = np.linalg.norm(rmat)
+                angle = abs(acos(dotprod / (A * B)))
+                if angle < self.sense_fov / 2:
+
+                    # if the angle is ok, then check distance
+                    if matdist(lmat, rmat) < self.sense_max:
+                        noise = np.random.randn(2)
+                        ids.append(l.ident)
+                        ret.append((l.center.x + noise[0], self.height - l.center.y + noise[1]))
+
+        return (ids, ret)
 
     def get_true_state(self):
         ret = []

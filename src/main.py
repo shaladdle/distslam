@@ -64,8 +64,36 @@ def kalman_update(H, R, P, x, z):
     return (x, P)
 
 # All these helper functions pretty much just use the matrix sizes
-def getR(z):
-    return np.matrix(np.identity(z.shape[0]))
+def getRz(x, P, meas_tuple):
+    Rdiag = []
+    z = []
+    (ids, meas) = meas_tuple
+    print(meas_tuple)
+    
+    state = { t[0] : t[1] for t in zip(meas_tuple[0], meas_tuple[1]) }
+    print(state)
+
+    Parr = np.array(P)
+    print(Parr)
+    # lol
+    cov = { 3+x : (Parr[3+x*2][3+x*2], Parr[3+x*2+1][3+x*2+1]) for x in range(len(lm)) }
+    print(cov)
+
+    for i in range(len(lm)):
+        if i in ids:
+            z.append(meas[i][0])
+            z.append(meas[i][1])
+            Rdiag.append(10)
+            Rdiag.append(10)
+        else:
+            z.append(state[i][0])
+            z.append(state[i][1])
+            Rdiag.append(cov[i][0])
+            Rdiag.append(cov[i][1])
+
+    R = np.diag(Rdiag)
+
+    return np.matrix(R), np.matrix(z)
 
 def getH(x, z):
     a = np.zeros((z.shape[0], 3))
@@ -133,7 +161,10 @@ if __name__ == "__main__":
 
         for cobot, sim in cobot_sim:
             sim.do_motors(cobot.u)
-            z = sim.sense()
+            meas = sim.sense()
+            print(meas)
+            R, z = getRz(cobot.x, cobot.P, meas)
+            print(R,z)
 
             # Get matrices for this iteration
             F = getF(cobot.x)
@@ -141,7 +172,6 @@ if __name__ == "__main__":
             cobot.x, cobot.P = kalman_predict(F, G, cobot.P, cobot.x, cobot.u)
 
             H = getH(cobot.x, z)
-            R = getR(z)
             cobot.x, cobot.P = kalman_update(H, R, cobot.P, cobot.x, z)
 
         ed.draw((cobot.x, cobot.P) for cobot, _ in cobot_sim)
