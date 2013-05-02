@@ -1,9 +1,10 @@
 import graphics as g
 import numpy as np
-from math import cos, sin
+from math import cos, sin, pi
 
 class FourRectangle:
-    def __init__(self, tl, bl, br, tr):
+    def __init__(self, points):
+        tl, bl, br, tr = points;
         self.lines = [ g.Line(tl,bl)
                      , g.Line(bl,br)
                      , g.Line(br,tr)
@@ -93,20 +94,20 @@ class Simulator:
                   , np.matrix([[math_x + 10], [math_y + 15]])
                   ]
 
-        corners_local_frame =    [corner - math_pos for corner in corners]
-        corners_local_rot =      [rotmat * corner   for corner in corners_local_frame]
-        corners_rot_glob_frame = [corner + math_pos for corner in corners_local_rot]
-        corners_arr_rot_glob   = [np.array(corner)  for corner in corners_rot_glob_frame]
-        cpoints =                [g.Point(corner[0][0], self.height - corner[1][0]) for corner in corners_arr_rot_glob]
+        corners_local_frame =    (corner - math_pos for corner in corners)
+        corners_local_rot =      (rotmat * corner   for corner in corners_local_frame)
+        corners_rot_glob_frame = (corner + math_pos for corner in corners_local_rot)
+        corners_arr_rot_glob   = (np.array(corner)  for corner in corners_rot_glob_frame)
+        cpoints =                (g.Point(corner[0][0], self.height - corner[1][0]) for corner in corners_arr_rot_glob)
 
         # redraw the box with the rotated box
         self.robotrect.undraw()
-        self.robotrect = FourRectangle(cpoints[0], cpoints[1], cpoints[2], cpoints[3])
+        self.robotrect = FourRectangle(cpoints);
         self.robotrect.draw(self.win)
 
         # update the robot position
         self.robot_pos = g.Point(math_x, self.height - math_y)
-        self.robot_hdg += -math_hdg
+        self.robot_hdg = -math_hdg % (2 * pi)
 
     def sense(self):
         ret = []
