@@ -147,4 +147,4 @@ if __name__ == "__main__":
 
         ed.draw((cobot.x, cobot.P) for cobot, _ in cobot_sim)
 
-        sleep(0.1)
+        sleep(90.1)
