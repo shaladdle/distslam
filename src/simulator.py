@@ -45,16 +45,17 @@ class FourRectangle:
             dx = l.p2.x - l.p1.x
             dy = l.p2.y - l.p1.y
             ray = vector.Vector2(dx, dy)
-            for c in landmarks:
-                t = intersect.line_circle(l.p1, ray, c.center, c.rad)
-                if t >= 0 and t <= 1 and t < min_t:
-                    min_t = t
-            #make line with new endpoint and draw it
-            if min_t >= 0 and min_t <= 1:
+
+            t_int = lambda c: intersect.line_circle(l.p1, ray, c.center, c.rad)
+            ts = (t_int(c) for c in landmarks)
+            try:
+                min_t = min(t for t in ts if 0 <= t <= 1)
                 l = g.Line(l.p1, g.Point(l.p1.x + min_t * dx, l.p1.y + min_t * dy))
+            except ValueError:
+                pass
             l.draw(win)
             self.drawn_lines.append(l)
-
+                
     def undraw(self):
         for l in self.lines:
             l.undraw()

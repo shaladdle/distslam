@@ -3,7 +3,8 @@ from time import sleep
 from simulator import *
 import graphics as g
 import random
-from math import sin, cos
+from math import sin, cos, sqrt
+from vector import Vector2
 
 np.set_printoptions(linewidth=300,precision=4,suppress=True)
 
@@ -83,8 +84,8 @@ class Cobot:
                 newP = np.identity(self.x.shape[0] + numadded) * meas_uncertainty
                 newP[:self.P.shape[0],:self.P.shape[1]] = self.P
 
-                relmat = np.matrix([[1, 0, 0]
-                                   ,[0, 1, 0]
+                relmat = np.matrix([[1, 0, 1]
+                                   ,[0, 1, 1]
                                    ])
 
                 lidx = self.lm_ids.index(lid)
@@ -158,26 +159,39 @@ class EstimateDrawer:
         self.states = []
 
         colors = [ "red", "blue" ]
-        for i, ((x, P), color) in enumerate(zip(states, colors)):
+        lm_scale = 5
+        r_scale = 5
+        for (x, P), color in zip(states, colors):
             x = np.array(x)
             P = np.array(P)
+            p_diags = np.diag(P)
 
-            rpoint = g.Point(x[0][0], height - x[1][0])
-            r = g.Circle(rpoint, 28 - 2*i)
+            covx, covy = (p * r_scale for p in p_diags[:2])
+            [rx], [ry], rt = (p for p in x[:3])
+            rpoint1 = g.Point(rx - covx, height - (ry - covy))
+            rpoint2 = g.Point(rx + covx, height - (ry + covy))
+            r = g.Oval(rpoint1, rpoint2)
             r.setOutline(color)
             r.draw(self.win)
 
-            linemag = 50
-            b = g.Point(rpoint.x + linemag * cos(-x[2][0]), rpoint.y + linemag * sin(-x[2][0]))
-            rl = g.Line(rpoint, b)
+            t_scale = (covx + covy) / 2
+            b = g.Point(rx + t_scale * 1.2 * cos(-rt),
+                    height - ry + t_scale * 1.2 * sin(-rt))
+            rl = g.Line(g.Point(rx + (t_scale * 0.8) * cos(-rt), 
+                height - ry + (t_scale * 0.8) * sin(-rt)), b)
             rl.setOutline(color)
             rl.draw(self.win)
 
             state_x, state_P = [], []
             state_x.append(r)
             state_x.append(rl)
-            for [px], [py] in zip(x[3::2], x[4::2]):
-                c = g.Circle(g.Point(px, height - py), 14 - 2*i)
+            ellipse_data = zip(x[3::2], x[4::2], p_diags[3::2], p_diags[4::2])
+
+            for [px], [py], *cov in ellipse_data:
+                covx, covy = (p * lm_scale for p in cov)
+                p1 = Vector2(px - covx, height - (py - covy))
+                p2 = Vector2(px + covx, height - (py + covy))
+                c = g.Oval(g.Point(p1[0], p1[1]), g.Point(p2[0], p2[1]))
                 c.setOutline(color)
                 c.draw(self.win)
                 state_x.append(c)
