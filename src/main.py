@@ -112,9 +112,9 @@ class EstimateDrawer:
 
             self.states.append((state_x, state_P))
 
-def kalman_predict(F, G, P, x, u):
+def kalman_predict(F, G, Q, P, x, u):
     x_p = F * x + G * u
-    P_p = F * P * F.transpose() + 
+    P_p = F * P * F.transpose() + Q
     return (x_p, P_p)
 
 def kalman_update(H, R, P, x, z):
@@ -125,6 +125,11 @@ def kalman_update(H, R, P, x, z):
     P = (np.identity(K.shape[0]) - K * H) * P
 
     return (x, P)
+
+def getQ(x):
+    ret = np.zeros((x.shape[0], x.shape[0]))
+    ret[0:3,0:3] = np.identity(3)
+    return np.matrix(ret)
 
 def getHzR(cobot, meas):
     zids = [ i for i in meas.keys() ]
@@ -217,9 +222,10 @@ def main():
             cobot.add_new_landmarks(meas)
 
             # get matrices for kalman predict
+            Q = getQ(cobot.x)
             F = getF(cobot.x)
             G = getG(cobot.x, cobot.u)
-            cobot.x, cobot.P = kalman_predict(F, G, cobot.P, cobot.x, cobot.u)
+            cobot.x, cobot.P = kalman_predict(F, G, Q, cobot.P, cobot.x, cobot.u)
 
             if not meas:
                 continue
