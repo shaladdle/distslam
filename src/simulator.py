@@ -100,11 +100,11 @@ class Simulator:
                   , np.matrix([[math_x + 10], [math_y + 15]])
                   ]
 
-        corners_local_frame =    (corner - math_pos for corner in corners)
-        corners_local_rot =      (rotmat * corner   for corner in corners_local_frame)
+        corners_local_frame    = (corner - math_pos for corner in corners)
+        corners_local_rot      = (rotmat * corner   for corner in corners_local_frame)
         corners_rot_glob_frame = (corner + math_pos for corner in corners_local_rot)
         corners_arr_rot_glob   = (np.array(corner)  for corner in corners_rot_glob_frame)
-        cpoints =                (g.Point(x, self.height - y) for [x], [y] in corners_arr_rot_glob)
+        cpoints                = (g.Point(x, self.height - y) for [x], [y] in corners_arr_rot_glob)
 
         # redraw the box with the rotated box
         self.robotrect.undraw()
