@@ -137,17 +137,18 @@ def combine_estimates(cobots):
     if numlms == 0:
         return None
 
-    bigcobot.x = np.matrix(np.zeros((numlms, 1)))
-    bigcobot.P = np.matrix(np.zeros((numlms, numlms)))
-    bigcobot.lm_ids = []
+    xsize = 3 * len(bigcobot.cob_ids) + 2 * numlms
+    bigcobot.x = np.matrix(np.zeros((xsize, 1)))
+    bigcobot.P = np.matrix(np.zeros((xsize, xsize)))
     for cobot in cobots:
         # 1. Update this robot's position right from the cobot's state estimate
         cob_idx = bigcobot.cob_ids.index(cobot.ident)
-        bigcobot.x[3 * cob_idx, 3 * cob_idx + 3,0] = cobot.x[0:3,0]
+        bigcobot.x[3 * cob_idx: 3 * cob_idx + 3, 0] = cobot.x[0:3,0]
 
         # 2. Update the covariance of the cobot's state from the right spot 
         #    in its corresponding covariance matrix
-        bigcobot.P[3 * cob_idx, 3 * cob_idx,3 * cob_idx, 3 * cob_idx] = cobot.P[0:3,0:3]
+        bigcobot.P[3 * cob_idx: 3 * cob_idx + 3,
+                   3 * cob_idx: 3 * cob_idx + 3] = cobot.P[0:3,0:3]
 
         for lid in cobot.lm_ids:
             lit_idx = cobot.lm_ids.index(lid)
@@ -160,7 +161,7 @@ def combine_estimates(cobots):
                 bigcobot.x.append(lx)
                 bigcobot.x.append(ly)
             else:
-                bigcobot.x[big_idx:big_idx+2,0] = cobot.x[lit_idx:lit_idx+2,0]
+                bigcobot.x[2*big_idx:2*big_idx+2,0] = cobot.x[2*lit_idx:2*lit_idx+2,0]
 
     return bigcobot
 
@@ -407,7 +408,7 @@ def main():
 
         sleep(0.01)
 
-        #combine_estimates(cobots)
+        combine_estimates(cobots)
 
         iters += 1
         if not iters % 50:
