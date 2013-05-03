@@ -10,14 +10,18 @@ class FourRectangle:
                      , g.Line(br,tr)
                      , g.Line(tr,tl)
                      ]
+        self.front = g.Circle(g.Point((tr.x + br.x) / 2.0, (tr.y + br.y) / 2.0), 3.0)
 
     def draw(self, win):
         for l in self.lines:
             l.draw(win)
+        self.front.color = "red"
+        self.front.draw(win)
 
     def undraw(self):
         for l in self.lines:
             l.undraw()
+        self.front.undraw()
 
 def addP(a, b):
     return g.Point(a.x + b.x, a.y + b.y)
