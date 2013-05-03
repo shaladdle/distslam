@@ -3,7 +3,6 @@ from time import sleep
 from simulator import *
 import graphics as g
 import random
-import curses
 
 np.set_printoptions(linewidth=300,precision=4)
 

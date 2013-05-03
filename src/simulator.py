@@ -1,5 +1,6 @@
 import graphics as g
 import numpy as np
+import vector
 from math import acos, cos, sin, pi, sqrt
 
 def matdot(m1, m2):
@@ -45,25 +46,45 @@ def rotate_pt(center, pt, theta):
     pt.y = rotvec[1][0]
 
 class FourRectangle:
-    def __init__(self, points):
+    def __init__(self, points, hdg):
         tl, bl, br, tr = points;
         self.lines = [ g.Line(tl,bl)
                      , g.Line(bl,br)
                      , g.Line(br,tr)
                      , g.Line(tr,tl)
                      ]
-        self.front = g.Circle(g.Point((tr.x + br.x) / 2.0, (tr.y + br.y) / 2.0), 3.0)
+        self.eye = g.Point((tr.x + br.x) / 2.0, (tr.y + br.y) / 2.0)
+        self.front = g.Circle(self.eye, 3.0)
+        self.fov = pi / 3.0 # radians
+        self.sight_range = 100 # temp for now
+
+        theta1 = hdg - self.fov / 2.0
+        theta2 = hdg + self.fov / 2.0
+
+        self.sight_lines = [
+                g.Line(self.eye,
+                    g.Point(self.sight_range * cos(theta1) + self.eye.x,
+                        self.sight_range * sin(theta1) + self.eye.y))
+                    ,
+                g.Line(self.eye,
+                    g.Point(self.sight_range * cos(theta2) + self.eye.x,
+                        self.sight_range * sin(theta2) + self.eye.y))
+                    ]
 
     def draw(self, win):
         for l in self.lines:
             l.draw(win)
         self.front.color = "red"
         self.front.draw(win)
+        for l in self.sight_lines:
+            l.draw(win)
 
     def undraw(self):
         for l in self.lines:
             l.undraw()
         self.front.undraw()
+        for l in self.sight_lines:
+            l.undraw()
 
 def addP(a, b):
     return g.Point(a.x + b.x, a.y + b.y)
@@ -154,7 +175,7 @@ class Simulator:
 
         # redraw the box with the rotated box
         self.robotrect.undraw()
-        self.robotrect = FourRectangle(cpoints);
+        self.robotrect = FourRectangle(cpoints, self.robot_hdg);
         self.robotrect.draw(self.win)
 
         # update the robot position
