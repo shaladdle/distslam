@@ -78,12 +78,11 @@ class FourRectangle:
         for l in self.sight_lines:
             # ray cast against landmarks
             min_t = 2
+            dx = l.p2.x - l.p1.x
+            dy = l.p2.y - l.p1.y
+            ray = vector.Vector2(dx, dy)
             for c in landmarks:
-                dx = l.p2.x - l.p1.x
-                dy = l.p2.y - l.p1.y
-                t = intersect.line_circle(l.p1, \
-                        vector.Vector2(dx, dy), \
-                        c.center, c.rad)
+                t = intersect.line_circle(l.p1, ray, c.center, c.rad)
                 if t >= 0 and t <= 1 and t < min_t:
                     min_t = t
             if min_t >= 0 and min_t <= 1:
