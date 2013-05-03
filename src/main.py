@@ -5,17 +5,46 @@ import graphics as g
 import random
 import curses
 
+np.set_printoptions(linewidth=300,precision=4)
+
 class Cobot:
     global width, height, lm
     def __init__(self, P, u=None, x=None):
+        self.lm_ids = []
         self.P = P
         if u is None:
             self.u = np.zeros((3, 1))
         if x is None:
-            self.x = np.zeros((len(lm) * 2 + 3,1))
+            self.x = np.zeros((3,1))
             self.x[0][0] = 200 + random.randrange(-width / 2, width / 2)
             self.x[1][0] = 300 # height
             self.x[2][0] = 0
+
+    def add_new_landmarks(self, meas):
+        xtmp = self.x.copy()
+        xtmp.reshape(self.x.shape[0])
+        xtmp = np.array(xtmp)
+
+        for lid in meas.keys():
+            # if the id is not already in the state (this landmark has never 
+            # been seen before)
+            if lid not in self.lm_ids:
+                # 1. add it to the current state vector
+                xtmp.append(meas[k][0])
+                xtmp.append(meas[k][1])
+
+                # 2. add it to lm_ids
+                lm_ids.append(lid)
+
+                # 3. add it to the covariance matrix
+                newP = np.zeros(self.P.shape)
+                newP[:P.shape[0],:P.shape[1]] = self.P
+                self.P = newP
+
+                # 4. remove it from the measurement dict
+                del meas[k]
+
+        self.x = np.matrix(xtmp.reshape(self.x.shape))
 
 class EstimateDrawer:
     def __init__(self, win):
@@ -63,9 +92,55 @@ def kalman_update(H, R, P, x, z):
 
     return (x, P)
 
+def getHzR(cobot, meas):
+    zids = [ i for i in meas.keys() ]
+    z = np.array([ meas[i] for i in zids ])
+    z = np.matrix(z.reshape((len(zids),1)))
+
+    H = np.zeros((len(zids), len(cobot.lm_ids)))
+    for lid in zids:
+        zidx = zids.index(lid) * 2
+        xidx = 3 + cobot.lm_ids.index(lid) * 2
+
+        H[zidx:zidx+1,xidx:xidx+2] = np.identity(2)
+
+    H = np.matrix(H)
+
+    R = np.identity(z.shape[0])
+
+    return H, z, R
+
 # All these helper functions pretty much just use the matrix sizes
-def getR(z):
-    return np.matrix(np.identity(z.shape[0]))
+def getRz(x, P, meas_tuple):
+    Rdiag = []
+    z = []
+    allids = [l.ident for l in lm]
+    xr = [e for [e] in np.array(x)]
+    (ids, meas) = meas_tuple
+    
+    state = { i : (a,b) for i, a, b in zip(allids, xr[3::2], xr[4::2]) }
+    print("state\n" + str(state))
+
+    diag = np.diagonal(P)
+    print("diag\n{}".format(diag))
+    cov = { i : (a, b) for i, a, b in zip(allids, diag[3::2], diag[4::2]) }
+    print("cov\n" + str(cov))
+
+    for i in range(len(lm)):
+        if i in ids:
+            z.append([meas[i][0]])
+            z.append([meas[i][1]])
+            Rdiag.append(meas_uncertainty)
+            Rdiag.append(meas_uncertainty)
+        else:
+            z.append([state[i][0]])
+            z.append([state[i][1]])
+            Rdiag.append(cov[i][0])
+            Rdiag.append(cov[i][1])
+
+    R = np.diag(Rdiag)
+
+    return np.matrix(R), np.matrix(z)
 
 def getH(x, z):
     a = np.zeros((z.shape[0], 3))
@@ -88,7 +163,8 @@ def getF(x):
     return np.matrix(np.identity(x.shape[0]))
 
 if __name__ == "__main__":
-    global width, height, lm
+    global width, height, lm, meas_uncertainty
+    meas_uncertainty = 10
     width = 400
     height = 400
     win = g.GraphWin('SLAM Simulator', width, height)
@@ -109,11 +185,7 @@ if __name__ == "__main__":
 
     # set initial state and covariance matrix
     numbots = 2
-    P = np.identity(len(lm) * 2 + 3) * 10
-    P[0][0] = 100
-    P[1][1] = 100
-    P[2][2] = 100
-    P = np.matrix(P)
+    P = np.matrix(np.identity(3))
     cobot_sim = []
     for _ in range(numbots):
         cobot = Cobot(P)
@@ -132,16 +204,31 @@ if __name__ == "__main__":
             return
 
         for cobot, sim in cobot_sim:
-            sim.do_motors(cobot.u)
-            z = sim.sense()
+            print("x, P")
+            print(cobot.x)
+            print(cobot.P)
 
-            # Get matrices for this iteration
+            sim.do_motors(cobot.u)
+            meas = sim.sense()
+            print("did measurement")
+
+            # add previously unseen landmarks to the state
+            cobot.add_new_landmarks(meas)
+            print("added new landmarks")
+
+            # get matrices for kalman predict
+            print(cobot.x.shape, cobot.P.shape)
             F = getF(cobot.x)
             G = getG(cobot.x, cobot.u)
             cobot.x, cobot.P = kalman_predict(F, G, cobot.P, cobot.x, cobot.u)
+            print("did kalman_predict")
 
-            H = getH(cobot.x, z)
-            R = getR(z)
+            if not meas:
+                continue
+
+            # compute H, z, and R
+            H, z, R = getHzR(cobot, meas)
+            print(H.shape, z.shape, R.shape)
             cobot.x, cobot.P = kalman_update(H, R, cobot.P, cobot.x, z)
 
         ed.draw((cobot.x, cobot.P) for cobot, _ in cobot_sim)
@@ -193,3 +280,4 @@ if __name__ == "__main__":
     
     while True:
         timestep()
+        sleep(0.2)
