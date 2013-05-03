@@ -2,12 +2,9 @@ import graphics as g
 import numpy as np
 from math import acos, cos, sin, pi, sqrt
 
-def matdist(m1, m2):
-    return sqrt(matdot(m2 - m1, m2 - m1))
-
 def matdot(m1, m2):
-    return np.dot([x[0] for x in np.array(m1)]
-                 ,[x[0] for x in np.array(m1)]
+    return np.dot([x for [x] in np.array(m1)]
+                 ,[x for [x] in np.array(m2)]
                  )
 
 def rotate_vector(center, vector, theta):
@@ -82,7 +79,7 @@ class Simulator:
         self.motion_noise = 0.2
         self.sense_noise = 0.01
 
-        self.sense_max = 200
+        self.sense_max = 100
         self.sense_fov = pi / 3
         self.fov_markers = []
 
@@ -177,57 +174,44 @@ class Simulator:
         self.robot_pos = g.Point(math_x, self.height - math_y)
         self.robot_hdg = -math_hdg % (2 * pi)
 
-    def redraw_fov(self):
-        # need the slope of this vector, so we just just do rise/run
-        norm = sqrt(self.robot_pos.x * self.robot_pos.x + self.robot_pos.y * self.robot_pos.y)
-        newptl = np.matrix([[self.robot_pos.x + norm * sin(self.robot_hdg)]
-                           ,[self.robot_pos.y + norm * cos(self.robot_hdg)]
-                           ])
-        rotate_vector(self.robot_pos, newptl, - self.sense_fov / 2)
-
-        newptr = np.matrix([[self.robot_pos.x + norm * sin(self.robot_hdg)]
-                           ,[self.robot_pos.y + norm * cos(self.robot_hdg)]
-                           ])
-        rotate_vector(self.robot_pos, newptr, self.sense_fov / 2)
-
-        for m in self.fov_markers:
-            m.undraw()
-
-        nparrs = (np.array(x) for x in [newptr, newptl])
-        self.fov_markers = [g.Point(x[0][0], x[1][0]) for x in nparrs]
-
-        for m in self.fov_markers:
-            m.draw(self.win)
-
     def sense(self):
-        self.redraw_fov()
-
         ids = []
         ret = []
+
+        robhdgvec = np.matrix([[sin(self.robot_hdg)]
+                              ,[cos(self.robot_hdg)]
+                              ])
+
+        rmat = np.matrix([[self.robot_pos.x]
+                         ,[self.robot_pos.y]
+                         ])
+
+
         for l in self.landmarks:
-            larr = np.array([[l.center.x]
-                            ,[l.center.y]
+            larr = np.array([[self.robot_pos.x + l.center.x]
+                            ,[self.robot_pos.y + l.center.y]
                             ])
 
             lmat = np.matrix(larr)
 
-            rmat = np.matrix([[self.robot_pos.x]
-                             ,[self.robot_pos.y]
-                             ])
+            loclmvec = np.matrix(lmat - rmat)
 
-            if np.linalg.norm(lmat - rmat) < 100:
+            if np.linalg.norm(loclmvec) < self.sense_max:
+                print("vector\n" + str(loclmvec) + "\npasses test (norm = " + str(np.linalg.norm(loclmvec)) + ")")
                 # first check angle
-                dotprod = matdot(lmat, rmat)
-                A = np.linalg.norm(lmat)
-                B = np.linalg.norm(rmat)
+                dotprod = matdot(loclmvec, robhdgvec)
+                A = np.linalg.norm(loclmvec)
+                B = np.linalg.norm(robhdgvec)
                 angle = abs(acos(dotprod / (A * B)))
                 if angle < self.sense_fov / 2:
-
-                    # if the angle is ok, then check distance
-                    if matdist(lmat, rmat) < self.sense_max:
-                        noise = np.random.randn(2)
-                        ids.append(l.ident)
-                        ret.append((l.center.x + noise[0], self.height - l.center.y + noise[1]))
+                    noise = np.random.randn(2)
+                    ids.append(l.ident)
+                    ret.append((l.center.x + noise[0], self.height - l.center.y + noise[1]))
+                    print("vector\n" + str(loclmvec) + "\npasses test (angle = " + str(angle) + ")")
+                else:
+                    print("vector\n" + str(loclmvec) + "\ndoes not pass test (angle = " + str(angle) + ")")
+            else:
+                print("vector\n" + str(loclmvec) + "\ndoes not pass test (norm = " + str(np.linalg.norm(loclmvec)) + ")")
 
         return (ids, ret)
 
