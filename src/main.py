@@ -15,35 +15,41 @@ class Cobot:
             self.u = np.zeros((3, 1))
         if x is None:
             self.x = np.zeros((3,1))
-            self.x[0][0] = 200 + random.randrange(-width / 2, width / 2)
-            self.x[1][0] = 300 # height
+            self.x[0][0] = 0#200 + random.randrange(-width / 2, width / 2)
+            self.x[1][0] = 40#300 # height
             self.x[2][0] = 0
 
     def add_new_landmarks(self, meas):
         xtmp = self.x.copy()
-        xtmp.reshape(self.x.shape[0])
-        xtmp = np.array(xtmp)
+        xtmp = [ e for [e] in np.array(xtmp) ]
 
-        for lid in meas.keys():
+        numadded = 0
+        for lid in list(meas.keys()):
             # if the id is not already in the state (this landmark has never 
             # been seen before)
             if lid not in self.lm_ids:
+                numadded += 2
+
                 # 1. add it to the current state vector
-                xtmp.append(meas[k][0])
-                xtmp.append(meas[k][1])
+                xtmp.append(meas[lid][0])
+                xtmp.append(meas[lid][1])
 
                 # 2. add it to lm_ids
-                lm_ids.append(lid)
+                self.lm_ids.append(lid)
 
                 # 3. add it to the covariance matrix
-                newP = np.zeros(self.P.shape)
-                newP[:P.shape[0],:P.shape[1]] = self.P
+                newP = np.identity(self.x.shape[0] + numadded) * meas_uncertainty
+                newP[:self.P.shape[0],:self.P.shape[1]] = self.P
                 self.P = newP
 
                 # 4. remove it from the measurement dict
-                del meas[k]
+                del meas[lid]
 
-        self.x = np.matrix(xtmp.reshape(self.x.shape))
+        xtmp = [ [e] for e in xtmp ]
+        xtmp = np.matrix(xtmp)
+        xtmp.reshape(self.x.shape[0] + numadded, 1)
+
+        self.x = xtmp
 
 class EstimateDrawer:
     def __init__(self, win):
@@ -93,15 +99,19 @@ def kalman_update(H, R, P, x, z):
 
 def getHzR(cobot, meas):
     zids = [ i for i in meas.keys() ]
-    z = np.array([ meas[i] for i in zids ])
-    z = np.matrix(z.reshape((len(zids),1)))
+    z = []
+    for i in zids:
+        z.append(meas[i][0])
+        z.append(meas[i][1])
 
-    H = np.zeros((len(zids), len(cobot.lm_ids)))
+    z = np.matrix([ [e] for e in z ])
+
+    H = np.zeros((2 * len(zids), 3 + 2 * len(cobot.lm_ids)))
     for lid in zids:
         zidx = zids.index(lid) * 2
         xidx = 3 + cobot.lm_ids.index(lid) * 2
 
-        H[zidx:zidx+1,xidx:xidx+2] = np.identity(2)
+        H[zidx:zidx+2,xidx:xidx+2] = np.identity(2)
 
     H = np.matrix(H)
 

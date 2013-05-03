@@ -219,6 +219,7 @@ class Simulator:
             loclmvec = np.matrix(lmat - rmat)
 
             if np.linalg.norm(loclmvec) < self.sense_max:
+                #print("vector\n" + str(loclmvec) + "\npasses test (norm = " + str(np.linalg.norm(loclmvec)) + ")")
                 # first check angle
                 dotprod = matdot(loclmvec, rob_hdg_vec)
                 A = np.linalg.norm(loclmvec)
@@ -230,6 +231,11 @@ class Simulator:
                     # TODO also need to check for occlusion
 
                     ret[l.ident] = (l.center.x + noise[0], self.height - l.center.y + noise[1])
+                    #print("vector\n" + str(loclmvec) + "\npasses test (angle = " + str(angle) + ")")
+                #else:
+                    #print("vector\n" + str(loclmvec) + "\ndoes not pass test (angle = " + str(angle) + ")")
+            #else:
+                #print("vector\n" + str(loclmvec) + "\ndoes not pass test (norm = " + str(np.linalg.norm(loclmvec)) + ")")
 
         return ret
 
