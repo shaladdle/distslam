@@ -14,13 +14,13 @@ class Vector2(np.matrix):
         return self / self.length()
 
 # a and b are Vector2
-def dot_prod(a, b):
+def dot(a, b):
     return np.linalg.norm(a.transpose() * b)
     #return a.x * b.x + a.y * b.y
 
 # a and b are Vector2
 def interior_angle(a, b):
-   return acos(dot_prod(a, b) / (a.length() * b.length())) 
+   return acos(dot(a, b) / (a.length() * b.length())) 
 
 
 
