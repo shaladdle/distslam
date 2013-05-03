@@ -4,7 +4,7 @@ from math import cos, sin, pi, sqrt, acos
 import vector
 
 class FourRectangle:
-    def __init__(self, points):
+    def __init__(self, points, hdg):
         tl, bl, br, tr = points;
         self.lines = [ g.Line(tl,bl)
                      , g.Line(bl,br)
@@ -13,11 +13,21 @@ class FourRectangle:
                      ]
         self.eye = g.Point((tr.x + br.x) / 2.0, (tr.y + br.y) / 2.0)
         self.front = g.Circle(self.eye, 3.0)
-        self.fov = pi / 3.0 # degrees or radians?
-        self.sight_range = 10 # temp for now
-        self.sight_lines = [g.Line(self.eye,
-            g.Point(self.sight_range * cos(self.fov), 
-                self.sight_range * sin(self.fov)))]
+        self.fov = pi / 3.0 # radians
+        self.sight_range = 100 # temp for now
+
+        theta1 = hdg - self.fov / 2.0
+        theta2 = hdg + self.fov / 2.0
+
+        self.sight_lines = [
+                g.Line(self.eye,
+                    g.Point(self.sight_range * cos(theta1) + self.eye.x,
+                        self.sight_range * sin(theta1) + self.eye.y))
+                    ,
+                g.Line(self.eye,
+                    g.Point(self.sight_range * cos(theta2) + self.eye.x,
+                        self.sight_range * sin(theta2) + self.eye.y))
+                    ]
 
     def draw(self, win):
         for l in self.lines:
@@ -119,7 +129,7 @@ class Simulator:
 
         # redraw the box with the rotated box
         self.robotrect.undraw()
-        self.robotrect = FourRectangle(cpoints);
+        self.robotrect = FourRectangle(cpoints, self.robot_hdg);
         self.robotrect.draw(self.win)
 
         # update the robot position
