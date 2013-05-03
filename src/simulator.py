@@ -59,6 +59,7 @@ class FourRectangle:
         self.fov = pi / 3.0 
         self.sight_range = 100 
         self.sight_lines = []
+        self.temp_lines = []
         num_lines = 7
 
         # draw sight lines
@@ -88,6 +89,7 @@ class FourRectangle:
             if min_t >= 0 and min_t <= 1:
                 #make line with new endpoint and draw it
                 k = g.Line(l.p1, g.Point(l.p1.x + min_t * dx, l.p1.y + min_t * dy))
+                self.temp_lines.append(k)
                 k.draw(win)
             else:
                 l.draw(win)
@@ -98,6 +100,9 @@ class FourRectangle:
         self.front.undraw()
         for l in self.sight_lines:
             l.undraw()
+        for k in self.temp_lines:
+            k.undraw()
+        self.temp_lines = []
 
 def addP(a, b):
     return g.Point(a.x + b.x, a.y + b.y)
