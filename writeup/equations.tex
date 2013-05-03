@@ -1,0 +1,176 @@
+\documentclass[11pt]{report}
+
+\usepackage[retainorgcmds]{IEEEtrantools}
+\usepackage{amsmath}
+\usepackage{amssymb}
+%\usepackage{dsfont}
+\usepackage{epsfig}
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage{enumerate}
+
+\setlength{\textwidth}{7in}
+\setlength{\textheight}{9in}
+\setlength{\topmargin}{-0.7in}
+\setlength{\oddsidemargin}{-0.3in}
+\setlength{\evensidemargin}{0in}
+
+\DeclareMathOperator{\Prob}{\mathbb{P}}
+\DeclareMathOperator{\Exp}{\mathbb{E}}
+\DeclareMathOperator{\var}{\mathbb{V}}
+\DeclareMathOperator{\cov}{cov}
+\DeclareMathOperator*{\argmin}{\arg\min}
+\DeclareMathOperator*{\argmax}{\arg\max}
+\DeclareMathOperator*{\sign}{\text{sign}}
+
+\newcommand{\ind}{{\mathds{1}}}
+\newcommand{\bs}{\boldsymbol}
+\newcommand{\teq}{\triangleq}
+\newcommand{\tr}{{\text{\tiny T}}}
+\newcommand{\intd}{\mspace{1.5mu}d}
+
+\begin{document}
+
+\begin{align*}
+    x_t' &= F x_t + G u_t \\
+    P_t' &= F P F^T + Q
+\end{align*}
+
+\begin{align*}
+    y &= z_t - H_t x_t' \\
+    S &= H_t P_t' H^T_t + R_t \\
+    K &= P_t' H^T_t S^{-1} \\
+    x_{t+1} &= x_t' + Ky \\
+    P_{t+1} &= (I - K H_t) P_t'
+\end{align*}
+
+$$
+u = 
+\begin{bmatrix}
+    \Delta x \\
+    \Delta y \\
+    \Delta \theta \\
+\end{bmatrix}
+$$
+
+$$
+z = 
+\begin{bmatrix}
+    mx_1 \\
+    my_1 \\
+    mx_2 \\
+    my_2 \\
+    mx_3 \\
+    my_3 \\
+\end{bmatrix}
+$$
+
+$$
+\begin{bmatrix}
+    4 \\
+    5 \\
+    \pi \\
+    l_{1x} \\
+    l_{1y} \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+    3 \\
+    4 \\
+    \pi  \\
+    l_{1x} \\
+    l_{1y} \\
+\end{bmatrix}
++
+\begin{bmatrix}
+    1 & 0 & 0  \\
+    0 & 1 & 0  \\
+    0 & 0 & 1  \\
+    0 & 0 & 0  \\
+    0 & 0 & 0  \\
+\end{bmatrix}
+\begin{bmatrix}
+    1 \\
+    1 \\
+    0 \\
+\end{bmatrix}
+$$
+
+$$
+\vec{m}_i = \vec{lm}_i - \langle x, y \rangle
+$$
+
+$$
+\begin{bmatrix}
+    mx_1 \\
+    my_1 \\
+    mx_2 \\
+    my_2 \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+    -1 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+    0 & -1 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+    -1 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+    0 & -1 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
+\end{bmatrix}
+\begin{bmatrix}
+    x \\
+    y \\
+    \theta \\
+    lx_1 \\
+    ly_1 \\
+    lx_4 \\
+    ly_4 \\
+    lx_2 \\
+    ly_2 \\
+\end{bmatrix}
+$$
+
+
+$$
+\begin{bmatrix}
+    x \\
+    y \\
+    \theta \\
+\end{bmatrix}
+\rightarrow
+\begin{bmatrix}
+    x \\
+    y \\
+    \theta \\
+    l_{x_1} \\
+    l_{y_1} \\
+    l_{x_4} \\
+    l_{y_4} \\
+    l_{x_2} \\
+    l_{y_2} \\
+\end{bmatrix}
+$$
+
+$$
+z = 
+\begin{bmatrix}
+    l_{1x} \\
+    l_{1y} \\
+    l_{2x} \\
+    l_{2y} \\
+\end{bmatrix}
+$$
+
+$$
+P =
+\begin{bmatrix}
+    x_r & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & y_r & 0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 0 & \theta & 0 & 0 & 0 & 0 & 0 \\
+    1 & 0 & 0 & l_{1x} & 0 & 0 & 0 & 0 \\
+    0 & 1 & 0 & 0 & l_{2x} & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & \ddots & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 0 & l_{nx} & 0 \\
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & l_{ny} \\
+\end{bmatrix}
+$$
+
+    \medskip
+    \end{document}
