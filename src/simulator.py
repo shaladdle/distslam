@@ -47,7 +47,7 @@ def rotate_pt(center, pt, theta):
     pt.y = rotvec[1][0]
 
 class FourRectangle:
-    def __init__(self, points, hdg):
+    def __init__(self, points, hdg, fov, sense_max):
         tl, bl, br, tr = points;
         self.lines = [ g.Line(tl,bl)
                      , g.Line(bl,br)
@@ -56,14 +56,14 @@ class FourRectangle:
                      ]
         self.eye = g.Point((tr.x + br.x) / 2.0, (tr.y + br.y) / 2.0)
         self.front = g.Circle(self.eye, 3.0)
-        self.fov = pi / 3.0 
-        self.sight_range = 100 
+        self.fov = fov
+        self.sight_range = sense_max
         self.sight_lines = []
         self.temp_lines = []
-        num_lines = 7
+        num_lines = 15
 
         # draw sight lines
-        for i in range(num_lines + 1):
+        for i in range(num_lines):
             theta = (hdg - self.fov / 2.0) + (i * (self.fov / (num_lines - 1)))
             self.sight_lines.append(
                 g.Line(self.eye,
@@ -192,7 +192,7 @@ class Simulator:
 
         # redraw the box with the rotated box
         self.robotrect.undraw()
-        self.robotrect = FourRectangle(cpoints, self.robot_hdg);
+        self.robotrect = FourRectangle(cpoints, self.robot_hdg, self.sense_fov, self.sense_max);
         self.robotrect.draw(self.win, self.landmarks)
 
         # update the robot position
