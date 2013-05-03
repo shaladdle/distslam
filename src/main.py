@@ -16,13 +16,16 @@ class Cobot:
             self.u = np.zeros((3, 1))
         if x is None:
             self.x = np.zeros((3,1))
-            self.x[0][0] = 0#200 + random.randrange(-width / 2, width / 2)
-            self.x[1][0] = 40#300 # height
+            self.x[0][0] = 0   #200 + random.randrange(-width / 2, width / 2)
+            self.x[1][0] = 360 #300 # height
             self.x[2][0] = 0
 
     def add_new_landmarks(self, meas):
         xtmp = self.x.copy()
         xtmp = [ e for [e] in np.array(xtmp) ]
+
+        x_r = xtmp[0]
+        y_r = xtmp[1]
 
         numadded = 0
         for lid in list(meas.keys()):
@@ -32,8 +35,8 @@ class Cobot:
                 numadded += 2
 
                 # 1. add it to the current state vector
-                xtmp.append(meas[lid][0])
-                xtmp.append(meas[lid][1])
+                xtmp.append(x_r + meas[lid][0])
+                xtmp.append(y_r + meas[lid][1])
 
                 # 2. add it to lm_ids
                 self.lm_ids.append(lid)
@@ -45,6 +48,9 @@ class Cobot:
 
                 # 4. remove it from the measurement dict
                 del meas[lid]
+            else:
+                # make sure we put the landmarks into world frame
+                meas[lid] = (meas[lid][0] + x_r, meas[lid][1] + y_r)
 
         xtmp = [ [e] for e in xtmp ]
         xtmp = np.matrix(xtmp)
@@ -194,8 +200,7 @@ def main():
     cobot_sim = []
     for _ in range(numbots):
         cobot = Cobot(P)
-        coords = np.array(cobot.x)
-        sim = Simulator(win, g.Point(coords[0][0], coords[1][0]), coords[2][0], width, height)
+        sim = Simulator(win, g.Point(cobot.x[0,0], height - cobot.x[1,0]), - cobot.x[2,0], width, height)
         sim.set_landmarks(lm)
         cobot_sim.append((cobot, sim))
 
@@ -285,7 +290,7 @@ def main():
     win.bind("<KeyRelease-Right>", stop)
     win.pack()
     win.focus_set()
-    
+
     while True:
         timestep()
 
