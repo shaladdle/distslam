@@ -1,27 +1,90 @@
 import graphics as g
 import numpy as np
-from math import cos, sin, pi
+import vector
+from math import acos, cos, sin, pi, sqrt
+
+def matdot(m1, m2):
+    return np.dot([x for [x] in np.array(m1)]
+                 ,[x for [x] in np.array(m2)]
+                 )
+
+def rotate_vector(center, vector, theta):
+    rotmat = np.matrix([[cos(theta), -sin(theta)]
+                       ,[sin(theta),  cos(theta)]
+                       ])
+
+    centvec = np.matrix([[center.x]
+                        ,[center.y]
+                        ])
+
+    vector -= centvec
+
+    rotvec = np.array(rotmat * vector)
+
+    vector -= centvec
+
+def rotate_pt(center, pt, theta):
+    rotmat = np.matrix([[cos(theta), -sin(theta)]
+                       ,[sin(theta),  cos(theta)]
+                       ])
+
+    centvec = np.matrix([[center.x]
+                        ,[center.y]
+                        ])
+
+    vector = np.matrix([[pt.x]
+                       ,[pt.y]
+                       ])
+
+    vector -= centvec
+
+    rotvec = np.array(rotmat * vector)
+
+    rotvec += centvec
+
+    pt.x = rotvec[0][0]
+    pt.y = rotvec[1][0]
 
 class FourRectangle:
-    def __init__(self, points):
+    def __init__(self, points, hdg):
         tl, bl, br, tr = points;
         self.lines = [ g.Line(tl,bl)
                      , g.Line(bl,br)
                      , g.Line(br,tr)
                      , g.Line(tr,tl)
                      ]
-        self.front = g.Circle(g.Point((tr.x + br.x) / 2.0, (tr.y + br.y) / 2.0), 3.0)
+        self.eye = g.Point((tr.x + br.x) / 2.0, (tr.y + br.y) / 2.0)
+        self.front = g.Circle(self.eye, 3.0)
+        self.fov = pi / 3.0 # radians
+        self.sight_range = 100 # temp for now
+
+        theta1 = hdg - self.fov / 2.0
+        theta2 = hdg + self.fov / 2.0
+
+        self.sight_lines = [
+                g.Line(self.eye,
+                    g.Point(self.sight_range * cos(theta1) + self.eye.x,
+                        self.sight_range * sin(theta1) + self.eye.y))
+                    ,
+                g.Line(self.eye,
+                    g.Point(self.sight_range * cos(theta2) + self.eye.x,
+                        self.sight_range * sin(theta2) + self.eye.y))
+                    ]
 
     def draw(self, win):
         for l in self.lines:
             l.draw(win)
         self.front.color = "red"
         self.front.draw(win)
+        for l in self.sight_lines:
+            l.draw(win)
 
     def undraw(self):
         for l in self.lines:
             l.undraw()
         self.front.undraw()
+        for l in self.sight_lines:
+            l.undraw()
 
 def addP(a, b):
     return g.Point(a.x + b.x, a.y + b.y)
@@ -40,6 +103,10 @@ class Simulator:
     def __init__(self, win, start_pt, start_hdg, width, height):
         self.motion_noise = 0.2
         self.sense_noise = 0.01
+
+        self.sense_max = 100
+        self.sense_fov = pi
+        self.fov_markers = []
 
         # Start the robot at some provided position, and start it with
         # a heading of 0 (should be pointing east)
@@ -108,7 +175,7 @@ class Simulator:
 
         # redraw the box with the rotated box
         self.robotrect.undraw()
-        self.robotrect = FourRectangle(cpoints);
+        self.robotrect = FourRectangle(cpoints, self.robot_hdg);
         self.robotrect.draw(self.win)
 
         # update the robot position
@@ -116,12 +183,47 @@ class Simulator:
         self.robot_hdg = -math_hdg % (2 * pi)
 
     def sense(self):
-        ret = []
-        for l in self.landmarks:
-            ret.append([l.center.x])
-            ret.append([self.height - l.center.y])
+        ret = {}
+        rob_hdg_vec = np.matrix([[cos(self.robot_hdg)]
+                                ,[sin(self.robot_hdg)]
+                                ])
 
-        return np.matrix(ret) + (self.sense_noise * np.random.randn(len(self.landmarks) * 2,1))
+        rmat = np.matrix([[self.robot_pos.x]
+                         ,[self.robot_pos.y]
+                         ])
+
+        print("rmat")
+        print(rmat)
+
+        for l in self.landmarks:
+            larr = np.array([[l.center.x - self.robot_pos.x]
+                            ,[l.center.y - self.robot_pos.y]
+                            ])
+
+            lmat = np.matrix(larr)
+
+            loclmvec = np.matrix(lmat - rmat)
+
+            if np.linalg.norm(loclmvec) < self.sense_max:
+                print("vector\n" + str(loclmvec) + "\npasses test (norm = " + str(np.linalg.norm(loclmvec)) + ")")
+                # first check angle
+                dotprod = matdot(loclmvec, rob_hdg_vec)
+                A = np.linalg.norm(loclmvec)
+                B = np.linalg.norm(rob_hdg_vec)
+                angle = abs(acos(dotprod / (A * B)))
+                if angle < self.sense_fov / 2:
+                    noise = np.random.randn(2)
+
+                    # TODO also need to check for occlusion
+
+                    ret[l.ident] = (l.center.x + noise[0], self.height - l.center.y + noise[1])
+                    print("vector\n" + str(loclmvec) + "\npasses test (angle = " + str(angle) + ")")
+                else:
+                    print("vector\n" + str(loclmvec) + "\ndoes not pass test (angle = " + str(angle) + ")")
+            else:
+                print("vector\n" + str(loclmvec) + "\ndoes not pass test (norm = " + str(np.linalg.norm(loclmvec)) + ")")
+
+        return ret
 
     def get_true_state(self):
         ret = []
