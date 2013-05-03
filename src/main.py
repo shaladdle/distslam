@@ -212,9 +212,18 @@ def kalman_update(H, R, P, x, z):
 
     return (x, P)
 
-def getQ(x):
+def getQ(x, u):
+    noopu = np.matrix([[0]
+                      ,[0]
+                      ,[0]
+                      ])
     ret = np.zeros((x.shape[0], x.shape[0]))
+
+    if (noopu == u).all():
+        return ret
+
     ret[0:3,0:3] = np.identity(3)
+
     return np.matrix(ret)
 
 def getHzR(cobot, meas):
@@ -308,7 +317,7 @@ def main():
             cobot.add_new_landmarks(meas)
 
             # get matrices for kalman predict
-            Q = getQ(cobot.x)
+            Q = getQ(cobot.x, cobot.u)
             F = getF(cobot.x)
             G = getG(cobot.x, cobot.u)
             cobot.x, cobot.P = kalman_predict(F, G, Q, cobot.P, cobot.x, cobot.u)
