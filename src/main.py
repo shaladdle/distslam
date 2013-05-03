@@ -3,8 +3,9 @@ from time import sleep
 from simulator import *
 import graphics as g
 import random
+from math import sin, cos
 
-np.set_printoptions(linewidth=300,precision=4)
+np.set_printoptions(linewidth=300,precision=4,suppress=True)
 
 class Cobot:
     global width, height, lm
@@ -45,9 +46,20 @@ class Cobot:
                 # 3. add it to the covariance matrix
                 newP = np.identity(self.x.shape[0] + numadded) * meas_uncertainty
                 newP[:self.P.shape[0],:self.P.shape[1]] = self.P
+
+                relmat = np.matrix([[1, 0, 0]
+                                   ,[0, 1, 0]
+                                   ])
+
+                lidx = self.lm_ids.index(lid)
+                i = 3 + lidx * 2
+                # 4. add some covariance with the robot's pose
+                newP[i:i+2,0:3] = relmat
+                newP[0:3,i:i+2] = relmat.transpose()
+
                 self.P = newP
 
-                # 4. remove it from the measurement dict
+                # 5. remove it from the measurement dict
                 del meas[lid]
 
         xtmp = [ [e] for e in xtmp ]
@@ -78,7 +90,20 @@ class EstimateDrawer:
             x = np.array(x)
             P = np.array(P)
 
+            rpoint = g.Point(x[0][0], height - x[1][0])
+            r = g.Circle(rpoint, 28 - 2*i)
+            r.setOutline(color)
+            r.draw(self.win)
+
+            linemag = 50
+            b = g.Point(rpoint.x + linemag * cos(-x[2][0]), rpoint.y + linemag * sin(-x[2][0]))
+            rl = g.Line(rpoint, b)
+            rl.setOutline(color)
+            rl.draw(self.win)
+
             state_x, state_P = [], []
+            state_x.append(r)
+            state_x.append(rl)
             for [px], [py] in zip(x[3::2], x[4::2]):
                 c = g.Circle(g.Point(px, height - py), 14 - 2*i)
                 c.setOutline(color)
@@ -87,10 +112,9 @@ class EstimateDrawer:
 
             self.states.append((state_x, state_P))
 
-
 def kalman_predict(F, G, P, x, u):
     x_p = F * x + G * u
-    P_p = F * P * F.transpose()
+    P_p = F * P * F.transpose() + 
     return (x_p, P_p)
 
 def kalman_update(H, R, P, x, z):
@@ -150,6 +174,7 @@ def main():
     height = 400
     win = g.GraphWin('SLAM Simulator', width, height)
 
+
     lm_points = [ g.Point(30,  40)
                 , g.Point(25,  10)
                 , g.Point(300, 200)
@@ -167,7 +192,7 @@ def main():
 
     # set initial state and covariance matrix
     numbots = 2
-    P = np.matrix(np.identity(3))
+    P = np.matrix(np.identity((3)))
     cobot_sim = []
     for _ in range(numbots):
         cobot = Cobot(P)
@@ -262,8 +287,16 @@ def main():
     win.pack()
     win.focus_set()
 
+    iters = 0
     while True:
         timestep()
+
+        sleep(0.01)
+
+        iters += 1
+        if not iters % 50:
+            print(cobots[0].P)
+            print(cobots[0].x)
 
 if __name__ == "__main__":
     main()
