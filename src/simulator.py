@@ -219,32 +219,24 @@ class Simulator:
                          ])
 
         for l in self.landmarks:
-            larr = np.array([[l.center.x - self.robot_pos.x]
-                            ,[l.center.y - self.robot_pos.y]
-                            ])
+            lglbmat = np.matrix([[l.center.x]
+                                ,[l.center.y]
+                                ])
 
-            lmat = np.matrix(larr)
-
-            loclmvec = np.matrix(lmat - rmat)
+            loclmvec = lglbmat - rmat 
 
             if np.linalg.norm(loclmvec) < self.sense_max:
-                #print("vector\n" + str(loclmvec) + "\npasses test (norm = " + str(np.linalg.norm(loclmvec)) + ")")
                 # first check angle
                 dotprod = matdot(loclmvec, rob_hdg_vec)
                 A = np.linalg.norm(loclmvec)
                 B = np.linalg.norm(rob_hdg_vec)
                 angle = abs(acos(dotprod / (A * B)))
                 if angle < self.sense_fov / 2:
-                    noise = np.random.randn(2)
+                    # add gaussian noise
+                    loclmvec += self.sense_noise *  np.random.randn(2, 1)
 
                     # TODO also need to check for occlusion
-
-                    ret[l.ident] = (l.center.x + noise[0], self.height - l.center.y + noise[1])
-                    #print("vector\n" + str(loclmvec) + "\npasses test (angle = " + str(angle) + ")")
-                #else:
-                    #print("vector\n" + str(loclmvec) + "\ndoes not pass test (angle = " + str(angle) + ")")
-            #else:
-                #print("vector\n" + str(loclmvec) + "\ndoes not pass test (norm = " + str(np.linalg.norm(loclmvec)) + ")")
+                    ret[l.ident] = (loclmvec[0,0], -loclmvec[1,0])
 
         return ret
 
