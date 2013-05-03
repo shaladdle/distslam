@@ -8,45 +8,18 @@ from vector import Vector2
 
 np.set_printoptions(linewidth=300,precision=4,suppress=True)
 
-def getBigH(bigcobot, cobot):
-    H = np.zeros(cobot.x.shapes[0], bigcobot.x.shapes[0])
-
-    cob_idx = 3 * bigcobot.cob_ids.index(cobot.ident)
-    H[0:3,cob_idx:cob_idx+3] = np.identity(3)
-
-    for lid in cobot.lm_ids:
-        lit_idx = 3 + cobot.lm_ids.index(lid) * 2
-        big_idx = 3 * len(bigcobot.lm_ids) + bigcobot.lm_ids.index(lid) * 2
-
-        H[lit_idx:lit_idx+2,big_idx:big_idx+2] = np.identity(2)
-
-    return H
-
-def strip_lm(lid, cobot):
-    lidx = cobot.lm_ids.index(lid)
-
-    # delete from lm_ids
-    cobot.lm_ids.pop(lidx)
-
-    # delete from state
-    xlen = cobot.x.shape[0]
-    newx = np.matrix(np.zeros(xlen-2))
-    cutstart = 3 + 2 * lidx
-    newx[:cutstart,0] = cobot.x[:custart,0]
-    newx[cutstart+2:,0] = cobot.x[custart+2:,0]
-    cobot.x = newx
-
-    # delete from covariance matrix
-    newP = np.zeros((xlen-2,xlen-2))
-    newP[:cutstart,:cutstart] = cobot.P[:cutstart,:cutstart]
-    newP[cutstart+2:,:cutstart] = cobot.P[cutstart+2:,:cutstart]
-    newP[:cutstart,cutstart+2:] = cobot.P[:cutstart,cutstart+2:]
-    newP[cutstart+2:,cutstart+2:] = cobot.P[cutstart+2:,cutstart+2:]
-    cobot.P = np.matrix(newP)
+nextident = 0
+meas_uncertainty = 10
+width = 400
+height = 400
 
 class Cobot:
     global width, height, lm
     def __init__(self, P, u=None, x=None):
+        global nextident
+        self.ident = nextident
+        nextident += 1
+
         self.lm_ids = []
         self.P = P
         self.reverse = False
@@ -54,8 +27,8 @@ class Cobot:
             self.u = np.zeros((3, 1))
         if x is None:
             self.x = np.zeros((3,1))
-            self.x[0][0] = 200 + random.randrange(-width / 2, width / 2)
-            self.x[1][0] = 200 # height
+            self.x[0][0] = random.randrange(50, width-50)
+            self.x[1][0] = random.randrange(50, width-50)
             self.x[2][0] = 0
 
     def add_new_landmarks(self, meas):
@@ -109,6 +82,42 @@ class BigCobot(Cobot):
     def __init__(self):
         self.cob_ids = []
 
+def getBigH(bigcobot, cobot):
+    H = np.zeros(cobot.x.shapes[0], bigcobot.x.shapes[0])
+
+    cob_idx = 3 * bigcobot.cob_ids.index(cobot.ident)
+    H[0:3,cob_idx:cob_idx+3] = np.identity(3)
+
+    for lid in cobot.lm_ids:
+        lit_idx = 3 + cobot.lm_ids.index(lid) * 2
+        big_idx = 3 * len(bigcobot.lm_ids) + bigcobot.lm_ids.index(lid) * 2
+
+        H[lit_idx:lit_idx+2,big_idx:big_idx+2] = np.identity(2)
+
+    return H
+
+def strip_lm(lid, cobot):
+    lidx = cobot.lm_ids.index(lid)
+
+    # delete from lm_ids
+    cobot.lm_ids.pop(lidx)
+
+    # delete from state
+    xlen = cobot.x.shape[0]
+    newx = np.matrix(np.zeros(xlen-2))
+    cutstart = 3 + 2 * lidx
+    newx[:cutstart,0] = cobot.x[:custart,0]
+    newx[cutstart+2:,0] = cobot.x[custart+2:,0]
+    cobot.x = newx
+
+    # delete from covariance matrix
+    newP = np.zeros((xlen-2,xlen-2))
+    newP[:cutstart,:cutstart] = cobot.P[:cutstart,:cutstart]
+    newP[cutstart+2:,:cutstart] = cobot.P[cutstart+2:,:cutstart]
+    newP[:cutstart,cutstart+2:] = cobot.P[:cutstart,cutstart+2:]
+    newP[cutstart+2:,cutstart+2:] = cobot.P[cutstart+2:,cutstart+2:]
+    cobot.P = np.matrix(newP)
+
 def combine_estimates(cobots):
     if len(cobots) == 0:
         return None
@@ -123,8 +132,13 @@ def combine_estimates(cobots):
 
     bigcobot.cob_ids = [ cobot.ident for cobot in cobots ]
 
-    bigcobot.x = np.matrix(np.zeros((len(bigcobot.lm_ids), 1)))
-    bigcobot.P = np.matrix(np.zeros((len(bigcobot.lm_ids), len(bigcobot.lm_ids))))
+    numlms = len(bigcobot.lm_ids)
+
+    if numlms == 0:
+        return None
+
+    bigcobot.x = np.matrix(np.zeros((numlms, 1)))
+    bigcobot.P = np.matrix(np.zeros((numlms, numlms)))
     bigcobot.lm_ids = []
     for cobot in cobots:
         # 1. Update this robot's position right from the cobot's state estimate
@@ -136,10 +150,19 @@ def combine_estimates(cobots):
         bigcobot.P[3 * cob_idx, 3 * cob_idx,3 * cob_idx, 3 * cob_idx] = cobot.P[0:3,0:3]
 
         for lid in cobot.lm_ids:
+            lit_idx = cobot.lm_ids.index(lid)
+            big_idx = bigcobot.lm_ids.index(lid)
+
             if lid not in bigcobot.lm_ids:
                 bigcobot.lm_ids.append(lid)
 
-                strip_lm(lid, cobot)
+                lx, ly = strip_lm(lid, cobot)
+                bigcobot.x.append(lx)
+                bigcobot.x.append(ly)
+            else:
+                bigcobot.x[big_idx:big_idx+2,0] = cobot.x[lit_idx:lit_idx+2,0]
+
+    return bigcobot
 
 class EstimateDrawer:
     def __init__(self, win):
@@ -268,23 +291,14 @@ def getF(x):
     return np.matrix(np.identity(x.shape[0]))
 
 def main():
-    global width, height, lm, meas_uncertainty
-    meas_uncertainty = 10
-    width = 400
-    height = 400
+    global width, height, lm, meas_uncertaintyident
     win = g.GraphWin('SLAM Simulator', width, height)
 
-
-    lm_points = [ g.Point(30,  40)
-                , g.Point(25,  10)
-                , g.Point(300, 200)
-                , g.Point(100, 200)
-                , g.Point(150, 200)
-                , g.Point(200, 200)
-                , g.Point(250, 200)
-                , g.Point(50,  230)
-                , g.Point(100, 20)
-                ]
+    lm_points = []
+    for i in range(30):
+        lx = random.randrange(50, width-50)
+        ly = random.randrange(50, width-50)
+        lm_points.append(g.Point(lx, ly))
 
     lm = []
     for i, lmp in enumerate(lm_points):
@@ -393,6 +407,8 @@ def main():
         timestep()
 
         sleep(0.01)
+
+        #combine_estimates(cobots)
 
         iters += 1
         if not iters % 50:
