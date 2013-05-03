@@ -54,6 +54,7 @@ class FourRectangle:
                 l = g.Line(l.p1, g.Point(l.p1.x + min_t * dx, l.p1.y + min_t * dy))
                 if c.ident not in ret:
                     loclmvec = np.matrix([[c.center.x], [c.center.y]]) - rmat
+                    loclmvec += np.random.randn(2, 1)
                     ret[c.ident] = loclmvec[0, 0], -loclmvec[1, 0]
             except ValueError:
                 pass

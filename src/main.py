@@ -325,7 +325,7 @@ def main():
     win = g.GraphWin('SLAM Simulator', width, height)
 
     lm_points = []
-    for i in range(30):
+    for i in range(50):
         lx = random.randrange(50, width-50)
         ly = random.randrange(50, width-50)
         lm_points.append(g.Point(lx, ly))
@@ -378,8 +378,8 @@ def main():
         def go(event):
             # set velocities
             if event.keysym in ('Up', 'w', 'Down', 's'):
-                cobot.u[1][0] = .4 * sin(cobot.x[2][0])
-                cobot.u[0][0] = .4 * cos(cobot.x[2][0])
+                cobot.u[1][0] = 2 * sin(cobot.x[2][0])
+                cobot.u[0][0] = 2 * cos(cobot.x[2][0])
                 if event.keysym in ('Up', 'w'):
                     cobot.reverse = False
                 if event.keysym in ('Down', 's'):
