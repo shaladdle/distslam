@@ -1,6 +1,7 @@
 import graphics as g
 import numpy as np
-from math import cos, sin, pi
+from math import cos, sin, pi, sqrt, acos
+import vector
 
 class FourRectangle:
     def __init__(self, points):
@@ -10,18 +11,28 @@ class FourRectangle:
                      , g.Line(br,tr)
                      , g.Line(tr,tl)
                      ]
-        self.front = g.Circle(g.Point((tr.x + br.x) / 2.0, (tr.y + br.y) / 2.0), 3.0)
+        self.eye = g.Point((tr.x + br.x) / 2.0, (tr.y + br.y) / 2.0)
+        self.front = g.Circle(self.eye, 3.0)
+        self.fov = pi / 3.0 # degrees or radians?
+        self.sight_range = 10 # temp for now
+        self.sight_lines = [g.Line(self.eye,
+            g.Point(self.sight_range * cos(self.fov), 
+                self.sight_range * sin(self.fov)))]
 
     def draw(self, win):
         for l in self.lines:
             l.draw(win)
         self.front.color = "red"
         self.front.draw(win)
+        for l in self.sight_lines:
+            l.draw(win)
 
     def undraw(self):
         for l in self.lines:
             l.undraw()
         self.front.undraw()
+        for l in self.sight_lines:
+            l.undraw()
 
 def addP(a, b):
     return g.Point(a.x + b.x, a.y + b.y)
