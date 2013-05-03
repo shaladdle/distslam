@@ -109,8 +109,6 @@ def getHzR(cobot, meas):
         z.append(meas[i][0])
         z.append(meas[i][1])
 
-    z = np.matrix([ [e] for e in z ])
-
     H = np.zeros((2 * len(zids), 3 + 2 * len(cobot.lm_ids)))
     for lid in zids:
         zidx = zids.index(lid) * 2
@@ -119,40 +117,11 @@ def getHzR(cobot, meas):
         H[zidx:zidx+2,0:2] = np.identity(2) * (-1)
         H[zidx:zidx+2,xidx:xidx+2] = np.identity(2)
 
-    H = np.matrix(H)
+    z = np.matrix([ [e] for e in z ])
 
-    R = np.identity(z.shape[0])
+    R = 2 * np.identity(z.shape[0]) + np.ones((z.shape[0],z.shape[0]))
 
-    return H, z, R
-
-# All these helper functions pretty much just use the matrix sizes
-def getRz(x, P, meas_tuple):
-    Rdiag = []
-    z = []
-    allids = [l.ident for l in lm]
-    xr = [e for [e] in np.array(x)]
-    (ids, meas) = meas_tuple
-    
-    state = { i : (a,b) for i, a, b in zip(allids, xr[3::2], xr[4::2]) }
-
-    diag = np.diagonal(P)
-    cov = { i : (a, b) for i, a, b in zip(allids, diag[3::2], diag[4::2]) }
-
-    for i in range(len(lm)):
-        if i in ids:
-            z.append([meas[i][0]])
-            z.append([meas[i][1]])
-            Rdiag.append(meas_uncertainty)
-            Rdiag.append(meas_uncertainty)
-        else:
-            z.append([state[i][0]])
-            z.append([state[i][1]])
-            Rdiag.append(cov[i][0])
-            Rdiag.append(cov[i][1])
-
-    R = np.diag(Rdiag)
-
-    return np.matrix(R), np.matrix(z)
+    return np.matrix(H), z, np.matrix(R)
 
 def getH(x, z):
     a = np.zeros((z.shape[0], 3))
@@ -181,12 +150,15 @@ def main():
     height = 400
     win = g.GraphWin('SLAM Simulator', width, height)
 
-    lm_points = [ g.Point(30,  40),
-                  g.Point(25,  10),
-                  g.Point(300, 200),
-                  g.Point(200, 150),
-                  g.Point(50,  230),
-                  g.Point(100, 20)
+    lm_points = [ g.Point(30,  40)
+                , g.Point(25,  10)
+                , g.Point(300, 200)
+                , g.Point(100, 200)
+                , g.Point(150, 200)
+                , g.Point(200, 200)
+                , g.Point(250, 200)
+                , g.Point(50,  230)
+                , g.Point(100, 20)
                 ]
 
     lm = []
