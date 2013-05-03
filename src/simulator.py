@@ -1,8 +1,50 @@
 import graphics as g
 import numpy as np
-from math import cos, sin, pi, sqrt, acos
 import intersect
 import vector
+from math import acos, cos, sin, pi, sqrt
+
+def matdot(m1, m2):
+    return np.dot([x for [x] in np.array(m1)]
+                 ,[x for [x] in np.array(m2)]
+                 )
+
+def rotate_vector(center, vector, theta):
+    rotmat = np.matrix([[cos(theta), -sin(theta)]
+                       ,[sin(theta),  cos(theta)]
+                       ])
+
+    centvec = np.matrix([[center.x]
+                        ,[center.y]
+                        ])
+
+    vector -= centvec
+
+    rotvec = np.array(rotmat * vector)
+
+    vector -= centvec
+
+def rotate_pt(center, pt, theta):
+    rotmat = np.matrix([[cos(theta), -sin(theta)]
+                       ,[sin(theta),  cos(theta)]
+                       ])
+
+    centvec = np.matrix([[center.x]
+                        ,[center.y]
+                        ])
+
+    vector = np.matrix([[pt.x]
+                       ,[pt.y]
+                       ])
+
+    vector -= centvec
+
+    rotvec = np.array(rotmat * vector)
+
+    rotvec += centvec
+
+    pt.x = rotvec[0][0]
+    pt.y = rotvec[1][0]
 
 class FourRectangle:
     def __init__(self, points, hdg):
@@ -43,9 +85,9 @@ class FourRectangle:
                         c.center, c.rad)
                 if t >= 0 and t <= 1 and t < min_t:
                     min_t = t
-            if t >= 0 and t <= 1:
+            if min_t >= 0 and min_t <= 1:
                 #make line with new endpoint and draw it
-                k = g.Line(l.p1, g.Point(l.p1.x + t * dx, l.p1.y + t * dy))
+                k = g.Line(l.p1, g.Point(l.p1.x + min_t * dx, l.p1.y + min_t * dy))
                 k.draw(win)
             else:
                 l.draw(win)
@@ -74,6 +116,10 @@ class Simulator:
     def __init__(self, win, start_pt, start_hdg, width, height):
         self.motion_noise = 0.2
         self.sense_noise = 0.01
+
+        self.sense_max = 100
+        self.sense_fov = pi
+        self.fov_markers = []
 
         # Start the robot at some provided position, and start it with
         # a heading of 0 (should be pointing east)
@@ -150,12 +196,47 @@ class Simulator:
         self.robot_hdg = -math_hdg % (2 * pi)
 
     def sense(self):
-        ret = []
-        for l in self.landmarks:
-            ret.append([l.center.x])
-            ret.append([self.height - l.center.y])
+        ret = {}
+        rob_hdg_vec = np.matrix([[cos(self.robot_hdg)]
+                                ,[sin(self.robot_hdg)]
+                                ])
 
-        return np.matrix(ret) + (self.sense_noise * np.random.randn(len(self.landmarks) * 2,1))
+        rmat = np.matrix([[self.robot_pos.x]
+                         ,[self.robot_pos.y]
+                         ])
+
+        print("rmat")
+        print(rmat)
+
+        for l in self.landmarks:
+            larr = np.array([[l.center.x - self.robot_pos.x]
+                            ,[l.center.y - self.robot_pos.y]
+                            ])
+
+            lmat = np.matrix(larr)
+
+            loclmvec = np.matrix(lmat - rmat)
+
+            if np.linalg.norm(loclmvec) < self.sense_max:
+                print("vector\n" + str(loclmvec) + "\npasses test (norm = " + str(np.linalg.norm(loclmvec)) + ")")
+                # first check angle
+                dotprod = matdot(loclmvec, rob_hdg_vec)
+                A = np.linalg.norm(loclmvec)
+                B = np.linalg.norm(rob_hdg_vec)
+                angle = abs(acos(dotprod / (A * B)))
+                if angle < self.sense_fov / 2:
+                    noise = np.random.randn(2)
+
+                    # TODO also need to check for occlusion
+
+                    ret[l.ident] = (l.center.x + noise[0], self.height - l.center.y + noise[1])
+                    print("vector\n" + str(loclmvec) + "\npasses test (angle = " + str(angle) + ")")
+                else:
+                    print("vector\n" + str(loclmvec) + "\ndoes not pass test (angle = " + str(angle) + ")")
+            else:
+                print("vector\n" + str(loclmvec) + "\ndoes not pass test (norm = " + str(np.linalg.norm(loclmvec)) + ")")
+
+        return ret
 
     def get_true_state(self):
         ret = []
