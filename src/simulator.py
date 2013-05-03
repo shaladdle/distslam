@@ -83,44 +83,27 @@ class Simulator:
             noise[2][0] = 0
             
         u += self.motion_noise * noise
-        """
-        print("u after noise " + str(u))
-
-        print("self.robot_pos.x " + str(self.robot_pos.x))
-        print("self.robot_pos.y " + str(self.robot_pos.y))
-        """
 
         # math coordinates
-        math_x = self.robot_pos.x + u[0][0]
-        math_y = self.height - self.robot_pos.y + u[1][0]
+        disp = np.linalg.norm(u[:2])
         math_hdg = -self.robot_hdg + u[2][0]
-        """
-        print("math_hdg\n" + str(math_hdg))
-        """
+        math_dx = disp * cos(math_hdg)
+        math_dy = disp * sin(math_hdg)
+        math_x = self.robot_pos.x + math_dx
+        math_y = self.height - self.robot_pos.y + math_dy
 
         rotmat = np.matrix([[cos(math_hdg), -sin(math_hdg)]
                            ,[sin(math_hdg),  cos(math_hdg)]
                            ])
-        """
-        print("rotmat\n" + str(rotmat))
-        """
 
         # the position of the robot in math frame
         math_pos = np.matrix([[math_x]
                              ,[math_y]])
-        """
-        print("math_pos\n({}, {})".format(math_pos[0,0], math_pos[1,0]))
-        """
 
         # compute the box points unrotated
         math_topc = np.matrix([[math_x - 10], [math_y + 15]])
         math_botc = np.matrix([[math_x + 10], [math_y - 15]])
 
-        """
-        print("math_topc\n({}, {})".format(math_topc[0,0], math_topc[1,0]))
-        print("math_botc\n({}, {})".format(math_botc[0,0], math_botc[1,0]))
-        print("before rotation")
-        """
 
         corners = [ np.matrix([[math_x - 10], [math_y + 15]])
                   , np.matrix([[math_x - 10], [math_y - 15]])
@@ -128,11 +111,11 @@ class Simulator:
                   , np.matrix([[math_x + 10], [math_y + 15]])
                   ]
 
-        corners_local_frame =    [corner - math_pos for corner in corners]
-        corners_local_rot =      [rotmat * corner   for corner in corners_local_frame]
-        corners_rot_glob_frame = [corner + math_pos for corner in corners_local_rot]
-        corners_arr_rot_glob   = [np.array(corner)  for corner in corners_rot_glob_frame]
-        cpoints =                [g.Point(corner[0][0], self.height - corner[1][0]) for corner in corners_arr_rot_glob]
+        corners_local_frame =    (corner - math_pos for corner in corners)
+        corners_local_rot =      (rotmat * corner   for corner in corners_local_frame)
+        corners_rot_glob_frame = (corner + math_pos for corner in corners_local_rot)
+        corners_arr_rot_glob   = (np.array(corner)  for corner in corners_rot_glob_frame)
+        cpoints =                (g.Point(x, self.height - y) for [x], [y] in corners_arr_rot_glob)
 
         # redraw the box with the rotated box
         self.robotrect.undraw()

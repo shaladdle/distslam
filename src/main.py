@@ -153,9 +153,9 @@ if __name__ == "__main__":
                 cobot.u[1][0] = .4 * sin(cobot.x[2][0])
                 cobot.u[0][0] = .4 * cos(cobot.x[2][0])
             elif event.keysym in ('a', 'd', 'Left', 'Right'):
-                speed = np.linalg.norm(cobot.u[:2])
-                cobot.u[1][0] = speed * sin(cobot.x[2][0])
-                cobot.u[0][0] = speed * cos(cobot.x[2][0])
+                disp = np.linalg.norm(cobot.u[:2])
+                cobot.u[1][0] = disp * sin(cobot.x[2][0])
+                cobot.u[0][0] = disp * cos(cobot.x[2][0])
         return goForward
     
     def makeStop(cobot):
