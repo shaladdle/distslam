@@ -9,43 +9,6 @@ def matdot(m1, m2):
                  ,[x for [x] in np.array(m2)]
                  )
 
-def rotate_vector(center, vector, theta):
-    rotmat = np.matrix([[cos(theta), -sin(theta)]
-                       ,[sin(theta),  cos(theta)]
-                       ])
-
-    centvec = np.matrix([[center.x]
-                        ,[center.y]
-                        ])
-
-    vector -= centvec
-
-    rotvec = np.array(rotmat * vector)
-
-    vector -= centvec
-
-def rotate_pt(center, pt, theta):
-    rotmat = np.matrix([[cos(theta), -sin(theta)]
-                       ,[sin(theta),  cos(theta)]
-                       ])
-
-    centvec = np.matrix([[center.x]
-                        ,[center.y]
-                        ])
-
-    vector = np.matrix([[pt.x]
-                       ,[pt.y]
-                       ])
-
-    vector -= centvec
-
-    rotvec = np.array(rotmat * vector)
-
-    rotvec += centvec
-
-    pt.x = rotvec[0][0]
-    pt.y = rotvec[1][0]
-
 class FourRectangle:
     def __init__(self, points, hdg, fov, sense_max):
         tl, bl, br, tr = points;
@@ -99,9 +62,6 @@ class FourRectangle:
         for l in self.drawn_lines:
             l.undraw()
         self.drawn_lines[:] = []
-
-def addP(a, b):
-    return g.Point(a.x + b.x, a.y + b.y)
 
 class Landmark:
     def __init__(self, win, ident, rad, center):
