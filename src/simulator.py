@@ -59,7 +59,7 @@ class FourRectangle:
         self.fov = pi / 3.0 
         self.sight_range = 100 
         self.sight_lines = []
-        self.temp_lines = []
+        self.drawn_lines = []
         num_lines = 7
 
         # draw sight lines
@@ -88,21 +88,17 @@ class FourRectangle:
                     min_t = t
             if min_t >= 0 and min_t <= 1:
                 #make line with new endpoint and draw it
-                k = g.Line(l.p1, g.Point(l.p1.x + min_t * dx, l.p1.y + min_t * dy))
-                self.temp_lines.append(k)
-                k.draw(win)
-            else:
-                l.draw(win)
+                l = g.Line(l.p1, g.Point(l.p1.x + min_t * dx, l.p1.y + min_t * dy))
+            l.draw(win)
+            self.drawn_lines.append(l)
 
     def undraw(self):
         for l in self.lines:
             l.undraw()
         self.front.undraw()
-        for l in self.sight_lines:
+        for l in self.drawn_lines:
             l.undraw()
-        for k in self.temp_lines:
-            k.undraw()
-        self.temp_lines = []
+        self.drawn_lines[:] = []
 
 def addP(a, b):
     return g.Point(a.x + b.x, a.y + b.y)
@@ -146,7 +142,7 @@ class Simulator:
     def set_landmarks(self, landmarks):
         self.landmarks = landmarks
 
-    def do_motors(self, u):
+    def do_motors(self, u, reverse):
         u = np.array(u)
         noise = np.random.randn(3, 1)
         noise[2][0] /= 10
@@ -160,6 +156,8 @@ class Simulator:
 
         # math coordinates
         disp = np.linalg.norm(u[:2])
+        if reverse:
+            disp = -disp
         math_hdg = -self.robot_hdg + u[2][0]
         math_dx = disp * cos(math_hdg)
         math_dy = disp * sin(math_hdg)

@@ -11,6 +11,7 @@ class Cobot:
     def __init__(self, P, u=None, x=None):
         self.lm_ids = []
         self.P = P
+        self.reverse = False
         if u is None:
             self.u = np.zeros((3, 1))
         if x is None:
@@ -198,7 +199,7 @@ def main():
             return
 
         for cobot, sim in cobot_sim:
-            sim.do_motors(cobot.u)
+            sim.do_motors(cobot.u, cobot.reverse)
             meas = sim.sense()
 
             # add previously unseen landmarks to the state
@@ -218,45 +219,56 @@ def main():
 
         ed.draw((cobot.x, cobot.P) for cobot, _ in cobot_sim)
 
-    def makeForward(cobot):
-        def goForward(event):
+    def makeGo(cobot):
+        def go(event):
             # set velocities
-            if event.keysym in ('Up', 'w'):
+            if event.keysym in ('Up', 'w', 'Down', 's'):
                 cobot.u[1][0] = .4 * sin(cobot.x[2][0])
                 cobot.u[0][0] = .4 * cos(cobot.x[2][0])
+                if event.keysym in ('Up', 'w'):
+                    cobot.reverse = False
+                if event.keysym in ('Down', 's'):
+                    cobot.reverse = True
+
             elif event.keysym in ('a', 'd', 'Left', 'Right'):
                 disp = np.linalg.norm(cobot.u[:2])
                 cobot.u[1][0] = disp * sin(cobot.x[2][0])
                 cobot.u[0][0] = disp * cos(cobot.x[2][0])
-        return goForward
+        return go
     
     def makeStop(cobot):
         def stop(event):
-            if event.keysym in ('Up', 'w'):
+            if event.keysym in ('Up', 'w', 'Down', 's'):
                 cobot.u[:2] = np.zeros((2, 1))
             if event.keysym in ('Left', 'Right', 'a', 'd'):
                 cobot.u[2][0] = 0
         return stop
 
-    def makeTurn(cobot, theta, forward):
+    def makeTurn(cobot, theta, go):
         def turn(event):
             cobot.u[2][0] = theta
-            forward(event)
+            go(event)
         return turn
 
     cobots = list(zip(*cobot_sim))[0]
-    forward = makeForward(cobots[1])
-    win.bind("<KeyPress-w>", forward)
+
+    go = makeGo(cobots[1])
+    win.bind("<KeyPress-w>", go)
     win.bind("<KeyRelease-w>", makeStop(cobots[1]))
-    win.bind("<KeyPress-a>", makeTurn(cobots[1], .05, forward))
-    win.bind("<KeyPress-d>", makeTurn(cobots[1], -.05, forward))
+    win.bind("<KeyPress-s>", go)
+    win.bind("<KeyRelease-s>", makeStop(cobots[1]))
+    win.bind("<KeyPress-a>", makeTurn(cobots[1], .05, go))
+    win.bind("<KeyPress-d>", makeTurn(cobots[1], -.05, go))
     win.bind("<KeyRelease-a>", makeStop(cobots[1]))
     win.bind("<KeyRelease-d>", makeStop(cobots[1]))
-    forward = makeForward(cobots[0])
-    win.bind("<KeyPress-Up>", forward)
+
+    go = makeGo(cobots[0])
+    win.bind("<KeyPress-Up>", go)
     win.bind("<KeyRelease-Up>", makeStop(cobots[0]))
-    win.bind("<KeyPress-Left>", makeTurn(cobots[0], .05, forward))
-    win.bind("<KeyPress-Right>", makeTurn(cobots[0], -.05, forward))
+    win.bind("<KeyPress-Down>", go)
+    win.bind("<KeyRelease-Down>", makeStop(cobots[1]))
+    win.bind("<KeyPress-Left>", makeTurn(cobots[0], .05, go))
+    win.bind("<KeyPress-Right>", makeTurn(cobots[0], -.05, go))
     win.bind("<KeyRelease-Left>", makeStop(cobots[0]))
     win.bind("<KeyRelease-Right>", makeStop(cobots[0]))
     win.pack()
