@@ -16,8 +16,8 @@ class Cobot:
             self.u = np.zeros((3, 1))
         if x is None:
             self.x = np.zeros((3,1))
-            self.x[0][0] = 0   #200 + random.randrange(-width / 2, width / 2)
-            self.x[1][0] = 360 #300 # height
+            self.x[0][0] = 200 + random.randrange(-width / 2, width / 2)
+            self.x[1][0] = 200 # height
             self.x[2][0] = 0
 
     def add_new_landmarks(self, meas):
@@ -34,7 +34,8 @@ class Cobot:
             if lid not in self.lm_ids:
                 numadded += 2
 
-                # 1. add it to the current state vector
+                # 1. add it to the current state vector to bring it into
+                #    world frame
                 xtmp.append(x_r + meas[lid][0])
                 xtmp.append(y_r + meas[lid][1])
 
@@ -48,9 +49,6 @@ class Cobot:
 
                 # 4. remove it from the measurement dict
                 del meas[lid]
-            else:
-                # make sure we put the landmarks into world frame
-                meas[lid] = (meas[lid][0] + x_r, meas[lid][1] + y_r)
 
         xtmp = [ [e] for e in xtmp ]
         xtmp = np.matrix(xtmp)
@@ -118,6 +116,7 @@ def getHzR(cobot, meas):
         zidx = zids.index(lid) * 2
         xidx = 3 + cobot.lm_ids.index(lid) * 2
 
+        H[zidx:zidx+2,0:2] = np.identity(2) * (-1)
         H[zidx:zidx+2,xidx:xidx+2] = np.identity(2)
 
     H = np.matrix(H)
