@@ -118,12 +118,9 @@ def getRz(x, P, meas_tuple):
     (ids, meas) = meas_tuple
     
     state = { i : (a,b) for i, a, b in zip(allids, xr[3::2], xr[4::2]) }
-    print("state\n" + str(state))
 
     diag = np.diagonal(P)
-    print("diag\n{}".format(diag))
     cov = { i : (a, b) for i, a, b in zip(allids, diag[3::2], diag[4::2]) }
-    print("cov\n" + str(cov))
 
     for i in range(len(lm)):
         if i in ids:
@@ -180,8 +177,6 @@ def main():
     for i, lmp in enumerate(lm_points):
         lm.append(Landmark(win, i, 10, lmp))
 
-    print(len(lm))
-
     # set initial state and covariance matrix
     numbots = 2
     P = np.matrix(np.identity(3))
@@ -203,31 +198,22 @@ def main():
             return
 
         for cobot, sim in cobot_sim:
-            print("x, P")
-            print(cobot.x)
-            print(cobot.P)
-
             sim.do_motors(cobot.u)
             meas = sim.sense()
-            print("did measurement")
 
             # add previously unseen landmarks to the state
             cobot.add_new_landmarks(meas)
-            print("added new landmarks")
 
             # get matrices for kalman predict
-            print(cobot.x.shape, cobot.P.shape)
             F = getF(cobot.x)
             G = getG(cobot.x, cobot.u)
             cobot.x, cobot.P = kalman_predict(F, G, cobot.P, cobot.x, cobot.u)
-            print("did kalman_predict")
 
             if not meas:
                 continue
 
             # compute H, z, and R
             H, z, R = getHzR(cobot, meas)
-            print(H.shape, z.shape, R.shape)
             cobot.x, cobot.P = kalman_update(H, R, cobot.P, cobot.x, z)
 
         ed.draw((cobot.x, cobot.P) for cobot, _ in cobot_sim)
@@ -246,7 +232,6 @@ def main():
     
     def makeStop(cobot):
         def stop(event):
-            print(cobot)
             if event.keysym in ('Up', 'w'):
                 cobot.u[:2] = np.zeros((2, 1))
             if event.keysym in ('Left', 'Right', 'a', 'd'):
