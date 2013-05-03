@@ -59,7 +59,7 @@ class FourRectangle:
         self.fov = fov
         self.sight_range = sense_max
         self.sight_lines = []
-        num_lines = 15
+        num_lines = 12
         self.drawn_lines = []
 
         # draw sight lines
@@ -118,7 +118,7 @@ class Simulator:
         self.sense_noise = 0.01
 
         self.sense_max = 100
-        self.sense_fov = pi
+        self.sense_fov = 2 * pi / 3
         self.fov_markers = []
 
         # Start the robot at some provided position, and start it with
