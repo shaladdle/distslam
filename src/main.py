@@ -70,13 +70,13 @@ class EstimateDrawer:
         self.states = []
 
         colors = [ "red", "blue" ]
-        for (x, P), color in zip(states, colors):
+        for i, ((x, P), color) in enumerate(zip(states, colors)):
             x = np.array(x)
             P = np.array(P)
 
             state_x, state_P = [], []
             for [px], [py] in zip(x[3::2], x[4::2]):
-                c = g.Circle(g.Point(px, height - py), 10)
+                c = g.Circle(g.Point(px, height - py), 14 - 2*i)
                 c.setOutline(color)
                 c.draw(self.win)
                 state_x.append(c)
