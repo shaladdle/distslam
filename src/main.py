@@ -86,7 +86,7 @@ class EstimateDrawer:
 
         self.states = []
 
-        colors = [ "red", "blue" ]
+        colors = ["red", "blue"]
         lm_scale = 5
         r_scale = 5
         for (x, P), color in zip(states, colors):
@@ -229,8 +229,7 @@ def main():
             return
 
         for cobot, sim in cobot_sim:
-            sim.do_motors(cobot.u, cobot.reverse)
-            meas = sim.sense()
+            meas = sim.do_motors(cobot.u, cobot.reverse)
 
             # add previously unseen landmarks to the state
             cobot.add_new_landmarks(meas)

@@ -34,7 +34,8 @@ class FourRectangle:
                     g.Point(self.sight_range * cos(theta) + self.eye.x,
                         self.sight_range * sin(theta) + self.eye.y)))
 
-    def draw(self, win, landmarks):
+    def draw(self, win, landmarks, rmat):
+        ret = {}
         for l in self.lines:
             l.draw(win)
         self.front.color = "red"
@@ -47,14 +48,18 @@ class FourRectangle:
             ray = vector.Vector2(dx, dy)
 
             t_int = lambda c: intersect.line_circle(l.p1, ray, c.center, c.rad)
-            ts = (t_int(c) for c in landmarks)
+            ts = ((t_int(c), c) for c in landmarks)
             try:
-                min_t = min(t for t in ts if 0 <= t <= 1)
+                min_t, c = min(((t, c) for t, c in ts if 0 <= t <= 1), key=lambda tc:tc[0])
                 l = g.Line(l.p1, g.Point(l.p1.x + min_t * dx, l.p1.y + min_t * dy))
+                if c.ident not in ret:
+                    loclmvec = np.matrix([[c.center.x], [c.center.y]]) - rmat
+                    ret[c.ident] = loclmvec[0, 0], -loclmvec[1, 0]
             except ValueError:
                 pass
             l.draw(win)
             self.drawn_lines.append(l)
+        return ret
                 
     def undraw(self):
         for l in self.lines:
@@ -98,6 +103,9 @@ class Simulator:
         self.topc = g.Point(self.robot_pos.x - 10, self.robot_pos.y + 15)
         self.botc = g.Point(self.robot_pos.x + 10, self.robot_pos.y - 15)
         self.robotrect = g.Rectangle(self.topc, self.botc)
+        rmat = np.matrix([[self.robot_pos.x]
+                         ,[self.robot_pos.y]
+                         ])
         self.robotrect.draw(self.win)
 
     def set_landmarks(self, landmarks):
@@ -153,41 +161,14 @@ class Simulator:
         # redraw the box with the rotated box
         self.robotrect.undraw()
         self.robotrect = FourRectangle(cpoints, self.robot_hdg, self.sense_fov, self.sense_max);
-        self.robotrect.draw(self.win, self.landmarks)
+        rmat = np.matrix([[self.robot_pos.x]
+                         ,[self.robot_pos.y]
+                         ])
+        ret = self.robotrect.draw(self.win, self.landmarks, rmat)
 
         # update the robot position
         self.robot_pos = g.Point(math_x, self.height - math_y)
         self.robot_hdg = -math_hdg % (2 * pi)
-
-    def sense(self):
-        ret = {}
-        rob_hdg_vec = np.matrix([[cos(self.robot_hdg)]
-                                ,[sin(self.robot_hdg)]
-                                ])
-
-        rmat = np.matrix([[self.robot_pos.x]
-                         ,[self.robot_pos.y]
-                         ])
-
-        for l in self.landmarks:
-            lglbmat = np.matrix([[l.center.x]
-                                ,[l.center.y]
-                                ])
-
-            loclmvec = lglbmat - rmat 
-
-            if np.linalg.norm(loclmvec) < self.sense_max:
-                # first check angle
-                dotprod = matdot(loclmvec, rob_hdg_vec)
-                A = np.linalg.norm(loclmvec)
-                B = np.linalg.norm(rob_hdg_vec)
-                angle = abs(acos(dotprod / (A * B)))
-                if angle < self.sense_fov / 2:
-                    # add gaussian noise
-                    loclmvec += self.sense_noise *  np.random.randn(2, 1)
-
-                    # TODO also need to check for occlusion
-                    ret[l.ident] = (loclmvec[0,0], -loclmvec[1,0])
 
         return ret
 
