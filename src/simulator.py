@@ -82,22 +82,12 @@ class FourRectangle:
             dx = l.p2.x - l.p1.x
             dy = l.p2.y - l.p1.y
             ray = vector.Vector2(dx, dy)
-            #ray = vector.Vector2(-dx, -dy)
-            #ray_norm = ray.normalize()
             for c in landmarks:
                 t = intersect.line_circle(l.p1, ray, c.center, c.rad)
-                #t = intersect.line_circle(l.p1, ray_norm, c.center, c.rad)
-                print(t)
                 if t >= 0 and t <= 1 and t < min_t:
-                #if t >= 0 and t <= ray.length() and t < min_t:
-                    c_dot = vector.dot(vector.Vector2(cos(self.hdg), sin(self.hdg)).normalize(),
-                            vector.Vector2(l.p1.x - c.center.x , l.p1.y - c.center.y).normalize())
-                            #vector.Vector2(c.center.x - l.p1.x, c.center.y - l.p1.y).normalize())
-                    #print(c_dot)
-                    if c_dot > 0:
-                        min_t = t
+                    min_t = t
+            #make line with new endpoint and draw it
             if min_t >= 0 and min_t <= 1:
-                #make line with new endpoint and draw it
                 l = g.Line(l.p1, g.Point(l.p1.x + min_t * dx, l.p1.y + min_t * dy))
             l.draw(win)
             self.drawn_lines.append(l)

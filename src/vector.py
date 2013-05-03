@@ -4,7 +4,7 @@ from math import cos, sin, pi, sqrt, acos
 # a and b are 2d Points
 class Vector2(np.matrix):
     def __new__(cls, x, y):
-        obj = np.asarray([[x], [y]]).view(cls)
+        obj = np.asarray([x, y]).view(cls)
         return obj
     def __array_finalize__(self, obj):
         pass
@@ -15,8 +15,7 @@ class Vector2(np.matrix):
 
 # a and b are Vector2
 def dot(a, b):
-    return np.linalg.norm(a.transpose() * b)
-    #return a.x * b.x + a.y * b.y
+    return np.dot(a, b)
 
 # a and b are Vector2
 def interior_angle(a, b):
