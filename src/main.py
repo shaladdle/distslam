@@ -114,7 +114,7 @@ class EstimateDrawer:
 
 def kalman_predict(F, G, P, x, u):
     x_p = F * x + G * u
-    P_p = F * P * F.transpose() + 
+    P_p = F * P * F.transpose()
     return (x_p, P_p)
 
 def kalman_update(H, R, P, x, z):
