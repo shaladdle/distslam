@@ -87,7 +87,7 @@ def getG(x, u):
 def getF(x):
     return np.matrix(np.identity(x.shape[0]))
 
-if __name__ == "__main__":
+def main():
     global width, height, lm
     width = 400
     height = 400
@@ -193,3 +193,6 @@ if __name__ == "__main__":
     
     while True:
         timestep()
+
+if __name__ == "__main__":
+    main()
