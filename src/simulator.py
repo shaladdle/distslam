@@ -1,6 +1,7 @@
 import graphics as g
 import numpy as np
 from math import cos, sin, pi, sqrt, acos
+import intersect
 import vector
 
 class FourRectangle:
@@ -13,29 +14,41 @@ class FourRectangle:
                      ]
         self.eye = g.Point((tr.x + br.x) / 2.0, (tr.y + br.y) / 2.0)
         self.front = g.Circle(self.eye, 3.0)
-        self.fov = pi / 3.0 # radians
-        self.sight_range = 100 # temp for now
+        self.fov = pi / 3.0 
+        self.sight_range = 100 
+        self.sight_lines = []
+        num_lines = 7
 
-        theta1 = hdg - self.fov / 2.0
-        theta2 = hdg + self.fov / 2.0
-
-        self.sight_lines = [
+        # draw sight lines
+        for i in range(num_lines + 1):
+            theta = (hdg - self.fov / 2.0) + (i * (self.fov / (num_lines - 1)))
+            self.sight_lines.append(
                 g.Line(self.eye,
-                    g.Point(self.sight_range * cos(theta1) + self.eye.x,
-                        self.sight_range * sin(theta1) + self.eye.y))
-                    ,
-                g.Line(self.eye,
-                    g.Point(self.sight_range * cos(theta2) + self.eye.x,
-                        self.sight_range * sin(theta2) + self.eye.y))
-                    ]
+                    g.Point(self.sight_range * cos(theta) + self.eye.x,
+                        self.sight_range * sin(theta) + self.eye.y)))
 
-    def draw(self, win):
+    def draw(self, win, landmarks):
         for l in self.lines:
             l.draw(win)
         self.front.color = "red"
         self.front.draw(win)
         for l in self.sight_lines:
-            l.draw(win)
+            # ray cast against landmarks
+            min_t = 2
+            for c in landmarks:
+                dx = l.p2.x - l.p1.x
+                dy = l.p2.y - l.p1.y
+                t = intersect.line_circle(l.p1, \
+                        vector.Vector2(dx, dy), \
+                        c.center, c.rad)
+                if t >= 0 and t <= 1 and t < min_t:
+                    min_t = t
+            if t >= 0 and t <= 1:
+                #make line with new endpoint and draw it
+                k = g.Line(l.p1, g.Point(l.p1.x + t * dx, l.p1.y + t * dy))
+                k.draw(win)
+            else:
+                l.draw(win)
 
     def undraw(self):
         for l in self.lines:
@@ -130,7 +143,7 @@ class Simulator:
         # redraw the box with the rotated box
         self.robotrect.undraw()
         self.robotrect = FourRectangle(cpoints, self.robot_hdg);
-        self.robotrect.draw(self.win)
+        self.robotrect.draw(self.win, self.landmarks)
 
         # update the robot position
         self.robot_pos = g.Point(math_x, self.height - math_y)
