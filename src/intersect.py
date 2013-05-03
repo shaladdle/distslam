@@ -16,7 +16,7 @@ def line_circle(eye, ray, center, radius):
     # return lower value of t (ie minus discriminant)
     # not sure why it has to be negative of standard formula,
     # maybe because of our weird coordinate space
-    # t = (-1.0 * dot(ray, (e_minus_c)) - sqrt(discriminant)) / dot(ray, ray)
+    #t = (-1.0 * dot(ray, (e_minus_c)) - sqrt(discriminant)) / dot(ray, ray)
     t = (dot(ray, (e_minus_c)) - sqrt(discriminant)) / dot(ray, ray)
 
     return t
