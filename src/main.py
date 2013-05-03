@@ -8,11 +8,6 @@ from vector import Vector2
 
 np.set_printoptions(linewidth=300,precision=4,suppress=True)
 
-nextident = 0
-meas_uncertainty = 10
-width = 400
-height = 400
-
 class Cobot:
     global width, height, lm
     def __init__(self, P, u=None, x=None):
@@ -171,6 +166,36 @@ class EstimateDrawer:
         self.points = []
         self.states = []
 
+    def draw_big(self, bigcobot):
+        global height
+        for x, P in self.states:
+            for item in x:
+                item.undraw()
+
+            for item in P:
+                item.undraw()
+
+        states = [ (bigcobot.x, []) ]
+        self.states = []
+
+        colors = [ "purple" ]
+        lm_scale = 5
+        r_scale = 5
+        for (x, P), color in zip(states, colors):
+            x = np.array(x)
+            P = np.array(P)
+            p_diags = np.diag(P)
+
+            state_x, state_P = [], []
+            numcobs = len(bigcobot.cob_ids)
+            for [px], [py], in zip(x[3*numcobs+3::2], x[3*numcobs+4::2]):
+                c = g.Circle(g.Point(px, height - py), 20)
+                c.setOutline(color)
+                c.draw(self.win)
+                state_x.append(c)
+
+            self.states.append((state_x, state_P))
+
     def draw(self, states):
         global height
         for x, P in self.states:
@@ -292,7 +317,11 @@ def getF(x):
     return np.matrix(np.identity(x.shape[0]))
 
 def main():
-    global width, height, lm, meas_uncertaintyident
+    global width, height, lm, meas_uncertainty, nextident
+    nextident = 0
+    meas_uncertainty = 10
+    width = 800
+    height = 800
     win = g.GraphWin('SLAM Simulator', width, height)
 
     lm_points = []
@@ -402,18 +431,23 @@ def main():
     win.pack()
     win.focus_set()
 
+    ed2 = EstimateDrawer(win)
     iters = 0
     while True:
         timestep()
 
         sleep(0.01)
 
-        combine_estimates(cobots)
+        """
+        bigcobot = combine_estimates(cobots)
+
+        ed2.draw_big(bigcobot)
 
         iters += 1
         if not iters % 50:
             print(cobots[0].P)
             print(cobots[0].x)
+        """
 
 if __name__ == "__main__":
     main()
