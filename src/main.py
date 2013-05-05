@@ -426,16 +426,25 @@ def getHzR(cobot, meas):
         z.append(meas[i][1])
 
     H = np.zeros((2 * len(zids), 3 + 2 * len(cobot.lm_ids)))
+
+    z = np.matrix([ [e] for e in z ])
+    R = np.identity(z.shape[0])
+
     for lid in zids:
         zidx = zids.index(lid) * 2
         xidx = 3 + cobot.lm_ids.index(lid) * 2
 
         H[zidx:zidx+2,0:2] = np.identity(2) * (-1)
         H[zidx:zidx+2,xidx:xidx+2] = np.identity(2)
+        
+        for oi, olid in enumerate(zids):
+            if olid != lid:
+                ozidx = oi * 2
+                R[zidx : zidx + 2, ozidx : ozidx + 2] = 2* np.identity(2) 
 
-    z = np.matrix([ [e] for e in z ])
 
-    R = 2 * np.identity(z.shape[0]) + np.ones((z.shape[0],z.shape[0]))
+    #R = 2 * np.identity(z.shape[0]) + np.ones((z.shape[0],z.shape[0]))
+    
 
     return np.matrix(H), z, np.matrix(R)
 
@@ -560,8 +569,7 @@ def main():
     win.bind("<KeyRelease-w>", stop)
     win.bind("<KeyRelease-s>", stop)
     win.bind("<KeyRelease-a>", stop)
-    win.bind("<KeyRelease-d>", stop)
-
+    win.bind("<KeyRelease-d>", stop) 
     go = makeGo(cobots[0])
     win.bind("<KeyPress-Up>", go)
     win.bind("<KeyPress-Down>", go)
