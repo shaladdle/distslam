@@ -8,11 +8,6 @@ from vector import Vector2
 
 np.set_printoptions(linewidth=300,precision=4,suppress=True)
 
-nextident = 0
-meas_uncertainty = 10
-width = 400
-height = 400
-
 class Cobot:
     global width, height, lm
     def __init__(self, P, u=None, x=None):
@@ -81,6 +76,149 @@ class Cobot:
 class BigCobot(Cobot):
     def __init__(self):
         self.cob_ids = []
+
+    # do matrix stuff to add just one landmark
+    def add_lm(self, cobot, lid):
+        src_idx = cobot.lm_ids.index(lid)
+
+        # append to the list of lm_ids
+        dst_idx = len(lm_ids)
+        lm_ids.append(lid)
+
+        # append to x
+        lx, ly = zip(cobot.x[3::2], cobot.x[4::2])[src_idx]
+        self.x.append(lx)
+        self.x.append(ly)
+
+        # expand P, copy over the old matrix, and then set the appropriate
+        # regions to keep covariances
+        oldPsize = self.P.shape[0]
+        newPsize = oldPsize + 2
+        newP = np.zeros((newPsize, newPsize))
+        newP[:oldPsize,:oldPsize] = self.P
+
+        # here we want to copy over the covariance of this landmark with this
+        # cobot
+        src_row = 0
+        src_end_row = 3
+        src_col = 3 + src_idx * 2
+        src_end_col = src_col + 2
+
+        cob_idx = self.cob_ids.index(cobot.ident)
+        dst_row = 3 * cob_idx
+        dst_end_row = dst_row + 3
+        dst_col = 3 * len(self.cob_ids) + 2 * dst_idx
+        dst_end_col = dst_col + 2
+
+        # copy over this region and its transpose
+        newP[dst_row:dst_end_row,dst_col:dst_end_col] = cobot.P[src_row:src_end_row,src_col:src_end:col]
+        newP[dst_col:dst_end_col,dst_row:dst_end_row] = cobot.P[src_col:src_end:col,src_row:src_end_row]
+
+        # now we want to go through all the other landmarks that cobot knows
+        # about, and copy the covariance of that other landmark with the
+        # landmark we are trying to add
+        for oth_lid in self.lm_ids:
+            if oth_lid != lid and oth_lid in cobot.lm_ids:
+                oth_src_idx = cobot.lm_ids.index(oth_lid)
+                oth_dst_idx = self.lm_ids.index(oth_lid)
+
+                src_row = 3 + oth_src_idx * 2
+                src_end_row = oth_src_idx + 2
+                src_col = 3 + src_idx * 2
+                src_end_col = src_col + 2
+
+                cob_idx = self.cob_ids.index(cobot.ident)
+                dst_row = 3 * len(self.cob_ids) + 2 * oth_dst_idx
+                dst_end_row = dst_row + 3
+                dst_col = 3 * len(self.cob_ids) + 2 * dst_idx
+                dst_end_col = dst_col + 2
+
+                newP[dst_row:dst_end_row,dst_col:dst_end_col] = cobot.P[src_row:src_end_row,src_col:src_end:col]
+                newP[dst_col:dst_end_col,dst_row:dst_end_row] = cobot.P[src_col:src_end:col,src_row:src_end_row]
+
+    # here we actually append to our matrix, and set the covariances in the
+    # big covariance matrix based off of the little ones
+    def add_new(self, cobot):
+        for lid in cobot.lm_ids:
+            if lid not in self.lm_ids:
+                self.add_lm(cobot, lid)
+
+    def getHzR(self, update_list, cobot):
+        zsize = len(update_list)
+        z = np.zeros(zsize)
+        R = np.zeros((zsize, zsize))
+        H = np.zeros((zsize, self.x.shape[0]))
+
+        # have to do several things here, all part of removing parts of the
+        # cobot's state that were added by add_new and properly bringing
+        # through any covariance information:
+        # 1. Copy cobot pose from x to z
+        # 2. Copy cobot pose covariance from P to R
+        # 3. Copy landmark estimates from x to z
+        # 4. Copy landmark variances
+        # 5. Copy landmark covariances between robot pose and landmarks
+        # 6. Copy landmark covariances between landmarks and other landmarks
+
+        # also have to handle H
+        # 1. Line up robot pose in z with robot pose in bigx
+        # 2. Line up landmark pos in z with landmark pos in bigx
+
+        # Steps 1 and 2
+        z[0:3,0] = cobot.x[0:3,0]
+        R[0:3,0:3] = cobot.P[0:3,0:3]
+
+        # Set part of H corresponding to this robot's pose (step 1 for H)
+        big_cob_xidx = 3 * self.cob_ids.index(cobot.ident)
+        H[big_cob_xidx:big_cob_xidx+3,big_cob_xidx:big_cob_xidx+3] = np.identity(3)
+
+        covered = set()
+        for uidx, lm_id in enumerate(update_list):
+            zidx = 3 + uidx * 2
+            xidx = 3 + cobot.lm_ids.index(lm_id) * 2
+
+            # Steps 3 and 4
+            z[zidx:zidx+2,0] = cobot.x[xidx:xidx+2,0]
+            R[zidx:zidx+2,zidx:zidx+2] = cobot.P[xidx:xidx+2,xidx:xidx+2]
+
+            # Step 5
+            R[0:3,zidx:zidx+2] = cobot.P[0:3,xidx:xidx+2]
+            R[zidx:zidx+2,0:3] = cobot.P[xidx:xidx+2,0:3]
+
+            # Step 6
+            for olmidx, olm_id in enumerate(cobot.lm_ids):
+                if olm_id != lm_id and olm_id in update_list and not covered((olm_id, lm_id)):
+                    covered.add((olm_id, lm_id))
+                    covered.add((lm_id, olm_id))
+
+                    ozidx = 3 + update_list.index(olm_id) * 2
+                    oxidx = 3 + olmidx * 2
+
+                    R[ozidx:ozidx+2,zidx:zidx+2] = P[oxidx:oxidx+2,xidx:xidx+2]
+                    R[zidx:zidx+2,ozidx:ozidx+2] = P[xidx:xidx+2,oxidx:oxidx+2]
+
+            # set part of H corresponding to this landmark's position (step 2 for H)
+            big_lm_xidx = 3 * len(self.cob_ids)
+            H[zidx:zidx+2,big_lm_xidx:big_lm_xidx+2] = np.identity(2)
+
+        return H, z, R
+
+    def merge_estimates(self, cobots):
+        for cobot in cobots:
+            self.add_new(cobot)
+
+        for cobot in cobots:
+            update_list = []
+            for lid in cobot.lm_ids:
+                if lid in self.lm_ids:
+                    update_list.append(lid)
+
+            # Get the state and covariance of the cobot with only the
+            # landmarks we have seen before. Name them z and R since
+            # they are the measurement and measurement covariance for
+            # this kalman update
+            H, z, R = self.getHzR(update_list, cobot)
+
+            self.x, self.P = kalman_update(H, R, self.P, self.x, z)
 
 def getBigH(bigcobot, cobot):
     H = np.zeros(cobot.x.shapes[0], bigcobot.x.shapes[0])
@@ -171,6 +309,36 @@ class EstimateDrawer:
         self.points = []
         self.states = []
 
+    def draw_big(self, bigcobot):
+        global height
+        for x, P in self.states:
+            for item in x:
+                item.undraw()
+
+            for item in P:
+                item.undraw()
+
+        states = [ (bigcobot.x, []) ]
+        self.states = []
+
+        colors = [ "purple" ]
+        lm_scale = 5
+        r_scale = 5
+        for (x, P), color in zip(states, colors):
+            x = np.array(x)
+            P = np.array(P)
+            p_diags = np.diag(P)
+
+            state_x, state_P = [], []
+            numcobs = len(bigcobot.cob_ids)
+            for [px], [py], in zip(x[3*numcobs+3::2], x[3*numcobs+4::2]):
+                c = g.Circle(g.Point(px, height - py), 20)
+                c.setOutline(color)
+                c.draw(self.win)
+                state_x.append(c)
+
+            self.states.append((state_x, state_P))
+
     def draw(self, states):
         global height
         for x, P in self.states:
@@ -258,16 +426,25 @@ def getHzR(cobot, meas):
         z.append(meas[i][1])
 
     H = np.zeros((2 * len(zids), 3 + 2 * len(cobot.lm_ids)))
+
+    z = np.matrix([ [e] for e in z ])
+    R = np.identity(z.shape[0])
+
     for lid in zids:
         zidx = zids.index(lid) * 2
         xidx = 3 + cobot.lm_ids.index(lid) * 2
 
         H[zidx:zidx+2,0:2] = np.identity(2) * (-1)
         H[zidx:zidx+2,xidx:xidx+2] = np.identity(2)
+        
+        for oi, olid in enumerate(zids):
+            if olid != lid:
+                ozidx = oi * 2
+                R[zidx : zidx + 2, ozidx : ozidx + 2] = 2* np.identity(2) 
 
-    z = np.matrix([ [e] for e in z ])
 
-    R = 2 * np.identity(z.shape[0]) + np.ones((z.shape[0],z.shape[0]))
+    #R = 2 * np.identity(z.shape[0]) + np.ones((z.shape[0],z.shape[0]))
+    
 
     return np.matrix(H), z, np.matrix(R)
 
@@ -292,7 +469,11 @@ def getF(x):
     return np.matrix(np.identity(x.shape[0]))
 
 def main():
-    global width, height, lm, meas_uncertaintyident
+    global width, height, lm, meas_uncertainty, nextident
+    nextident = 0
+    meas_uncertainty = 10
+    width = 800
+    height = 800
     win = g.GraphWin('SLAM Simulator', width, height)
 
     lm_points = []
@@ -349,8 +530,8 @@ def main():
         def go(event):
             # set velocities
             if event.keysym in ('Up', 'w', 'Down', 's'):
-                cobot.u[1][0] = .4 * sin(cobot.x[2][0])
-                cobot.u[0][0] = .4 * cos(cobot.x[2][0])
+                cobot.u[1][0] = 2 * sin(cobot.x[2][0])
+                cobot.u[0][0] = 2 * cos(cobot.x[2][0])
                 if event.keysym in ('Up', 'w'):
                     cobot.reverse = False
                 if event.keysym in ('Down', 's'):
@@ -360,6 +541,7 @@ def main():
                 disp = np.linalg.norm(cobot.u[:2])
                 cobot.u[1][0] = disp * sin(cobot.x[2][0])
                 cobot.u[0][0] = disp * cos(cobot.x[2][0])
+
         return go
     
     def makeStop(cobot):
@@ -387,8 +569,7 @@ def main():
     win.bind("<KeyRelease-w>", stop)
     win.bind("<KeyRelease-s>", stop)
     win.bind("<KeyRelease-a>", stop)
-    win.bind("<KeyRelease-d>", stop)
-
+    win.bind("<KeyRelease-d>", stop) 
     go = makeGo(cobots[0])
     win.bind("<KeyPress-Up>", go)
     win.bind("<KeyPress-Down>", go)
@@ -402,11 +583,14 @@ def main():
     win.pack()
     win.focus_set()
 
+    #bigcobot = BigCobot()
+    #ed2 has a method draw_big which isn't working..
+    ed2 = EstimateDrawer(win)
+    iters = 0
     while True:
         timestep()
-        sleep(.025)
-        #combine_estimates(cobots)
 
+        sleep(0.01)
 
 if __name__ == "__main__":
     main()
