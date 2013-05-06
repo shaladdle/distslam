@@ -398,9 +398,12 @@ class GraphicsObject:
         if self.canvas and not self.canvas.isClosed(): raise GraphicsError(OBJ_ALREADY_DRAWN)
         if graphwin.isClosed(): raise GraphicsError("Can't draw to closed window")
         self.canvas = graphwin
+        print("hereX")
         self.id = self._draw(graphwin, self.config)
+        print("hereY")
         if graphwin.autoflush:
             _root.update()
+        print("hereZ")
 
             
     def undraw(self):

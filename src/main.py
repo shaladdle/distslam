@@ -508,49 +508,64 @@ def main():
         if win.isClosed():
             return
 
+        local_states = []
         for cobot, sim in cobot_sim:
             print("Acquiring lock (timestep)", cobot.ident)
+            # startup
             with cobot.lock:
-                meas, simx = sim.do_motors(cobot.u, cobot.reverse)
-                print("le robot thinks u = ")
-                print(cobot.u)
-                print("robot estimate of itself = ")
-                print(cobot.x[:3])
-                print("sim robot pos= ")
-                print(simx)
+                local_u = cobot.u.copy()
+                local_x = cobot.x.copy()
+                local_P = cobot.P.copy()
 
-                if (cobot.x[:3] != simx).all():
-                    print("Exiting because states are not equal")
-                    exit()
+            print("Acquired lock (timestep)", cobot.ident)
+            meas, simx = sim.do_motors(local_u, cobot.reverse)
+            print("le robot thinks u = ")
+            print(local_u)
+            print("robot estimate of itself = ")
+            print(local_x[:3])
+            print("sim robot pos= ")
+            print(simx)
 
-                # add previously unseen landmarks to the state
-                cobot.add_new_landmarks(meas)
-                print("add_new_landmarks")
+            if (local_x[:3] != simx).all():
+                print("Exiting because states are not equal")
+                exit()
 
-                # get matrices for kalman predict
-                Q = getQ(cobot.x, cobot.u)
-                F = getF(cobot.x)
-                G = getG(cobot.x, cobot.u)
-                print("did matrices")
-                cobot.x, cobot.P = kalman_predict(F, G, Q, cobot.P, cobot.x, cobot.u)
+            # add previously unseen landmarks to the state
+            cobot.add_new_landmarks(meas)
+            print("add_new_landmarks")
 
-                print("did predict")
-                if not meas or True:
-                    print("Releasing lock (timestep)", cobot.ident)
-                    continue
+            # get matrices for kalman predict
+            Q = getQ(local_x, local_u)
+            F = getF(local_x)
+            G = getG(local_x, local_u)
+            print("did matrices")
+            local_x, local_P = kalman_predict(F, G, Q, local_P, local_x, local_u)
 
+            print("did predict")
+            if not meas or True:
+                print("Releasing lock (timestep)", cobot.ident)
+            else:
                 # compute H, z, and R
                 H, z, R = getHzR(cobot, meas)
-                cobot.x, cobot.P = kalman_update(H, R, cobot.P, cobot.x, z)
+                local_x, local_P = kalman_update(H, R, local_P, local_x, z)
+                print("Releasing lock (timestep)", cobot.ident)
+            
+            local_states.append((local_x, local_P))
 
+            # cleanup
+            with cobot.lock:
+                cobot.u = local_u
+                cobot.x = local_x
+                cobot.P = local_P
 
-        ed.draw((cobot.x, cobot.P) for cobot, _ in cobot_sim)
+        ed.draw((x, P) for x, P in local_states)
 
     def makeGo(cobot):
         def go(event):
             # set velocities
             print("Acquiring lock (makeGo)", cobot.ident)
             with cobot.lock:
+                print("Acquired lock (makeGo)", cobot.ident)
                 if event.keysym in ('Up', 'w', 'Down', 's'):
                     cobot.u[0][0] = 2 * cos(cobot.x[2][0])
                     cobot.u[1][0] = 2 * sin(cobot.x[2][0])
@@ -570,10 +585,10 @@ def main():
         return go
     
     def makeStop(cobot):
-        with cobot.lock:
-            def stop(event):
+        def stop(event):
+            with cobot.lock:
                 cobot.u = np.zeros((3,1))
-            return stop
+        return stop
 
     cobots = list(zip(*cobot_sim))[0]
 
