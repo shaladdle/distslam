@@ -88,12 +88,18 @@ The Kalman filter is a method of updating prior predictions based on current obs
 
 The transition model is given by:
 \begin{align*}
-    x_t' &= F x_t + G u_t \\
-\end{align*} The measurement model is given by:
+    x_t' &= F x_t + G u_t + \nu_t \\
+\end{align*} 
+
+where $\nu_t$ is gaussian noise with covariance matrix $Q$.
+
+The measurement model is given by:
 
 \begin{align*}
-    Z_k &= H_k x_k + v_k
+    Z_k &= H_k x_k + w_k
 \end{align*}
+
+where $w_k$ is gaussian noise with covariance matrix $R$.
 
 The Kalman filter involves two steps: Predict and Update. \\
 
@@ -126,7 +132,7 @@ The matrix definitions are as follows:
 
 \section{Implementation}
 
-We assume a simple linear system with gaussian transtion and sensor noise.  Covariance matrices express relationships between landmarks and robot positions and between landmarks themselves.  
+We assume a simple linear system with gaussian transition and sensor noise.  Covariance matrices express relationships between landmarks and robot positions and between landmarks themselves.  
 
 We utilized Python and NumPy and for our numerical calculations and the Tkinter graphical framework to visualize our simulation.
 
@@ -138,7 +144,6 @@ Figure~\ref{fig:simulation} shows a screenshot of the simulation.  The black cir
 \label{fig:simulation}
 \end{figure}
 
-
 The blue and red circles on the robots themselves represent the robots' estimation and uncertainty about their own position.
 
 A diagram of the system is shown Figure~\ref{fig:system}.
@@ -149,24 +154,64 @@ A diagram of the system is shown Figure~\ref{fig:system}.
 \label{fig:system}
 \end{figure}
 
-An example of our transition mode, $x' = x + Gu$:
+\subsection{Parameters}
 
+Since the robot starts out not knowing about any landmarks, and adds new landmarks to its database at every time step, we must recompute all the matrices in our model at every timestep. The system state, $x$ is
+$$
+x 
+= 
+\begin{bmatrix}
+    x_r \\
+    y_r \\
+    \theta_r \\
+    x_{a_1} \\
+    y_{a_1} \\
+    \vdots \\
+    x_{a_n} \\
+    y_{a_n} \\
+\end{bmatrix}
+$$
+
+Where $[x_r, y_r, \theta_r]^T$ is the robot's pose, and $[x_i, y_i]^T$ is landmarks $i$'s $x$ and $y$ location, and $\{a_1,\ldots,a_n\}$ is the ordering of the landmarks in the $x$ vector. This ordering is dependent on the order in which landmarks are discovered by the robot. All locations are in the global reference frame. The estimate of $x$ may be referred to as $\hat{x}$.
+
+P is the covariance of the state estimate. $\hat{x}$ and $P$ are the parameters of the multivariate distribution that describes the current estimate of the system state.
+
+$$
+P =
+\begin{bmatrix}
+    var(x_r)     & 0            & 0               & cov(x_r,x_1) & 0            & cov(x_r,x_2) & 0            \\
+    0            & var(y_r)     & 0               & 0            & cov(y_r,y_1) & 0            & cov(y_r,y_2) \\
+    0            & 0            & var(\theta)     & 0            & 0            & 0            & 0            \\
+    cov(x_r,x_1) & 0            & 0               & var(x_1)     & 0            & cov(x_1,x_2) & 0            \\
+    0            & cov(y_r,y_1) & 0               & 0            & var(y_1)     & 0            & cov(y_1,y_2) \\
+    cov(x_r,x_2) & 0            & 0               & cov(x_1,x_2) & 0            & var(x_2)     & 0            \\
+    0            & cov(y_r,y_2) & 0               & 0            & cov(y_1,y_2) & 0            & var(y_2)     \\
+\end{bmatrix}
+$$
+
+The diagonals of this matrix are just the variances of each variable in the state vector. The off-diagonal elements are the covariances between different variables in the vector. We choose our $Q$ and $R$ matrices, which are motion covariance and measurement covariance, respectively, to indicate that there is noise between 
+
+\subsection{Motion Model}
+
+We also have the motion command, where $u=[\Delta x_r, \Delta y_r, \Delta \theta_r]^T$, or the change robot pose from timestep $t$ to timestep $t+1$.
+
+For our transition model, we set $F$ to be the identity matrix of the appropriate size. Thus our transition model becomes $x' = x + Gu$. An example of our transition model for one timestep follows. In this example the robot has already observed landmark 1, and has an estimate of that landmark's position in its state: $x_t=[3, 4, \pi, x_1, y_1]^T$, and $u_t = [1,1,0]^T$. In this case the transition model equation will look like this:
 
 $$
 \begin{bmatrix}
-    4 \\
-    5 \\
-    \pi \\
-    l_{1x} \\
-    l_{1y} \\
+    4  \\
+    5  \\
+    \pi\\
+    30 \\
+    40 \\
 \end{bmatrix}
 =
 \begin{bmatrix}
-    3 \\
-    4 \\
-    \pi  \\
-    l_{1x} \\
-    l_{1y} \\
+    3  \\
+    4  \\
+    \pi\\
+    30 \\
+    40 \\
 \end{bmatrix}
 +
 \begin{bmatrix}
@@ -183,14 +228,30 @@ $$
 \end{bmatrix}
 $$
 
-An example of our measurement model, $z = Hx$:
+The purpose of $G$ in this model is simply to convert $u_t$ into an $n\times 1$ matrix, where $n$ is the size of $x$, so the change in pose is added to the proper elements in $x$.
+
+\subsection{Sensor Model}
+
+Since our measurements are relative position between the motors and the landmarks, the $H$ matrix in the measurement model must express that. The relative sensor measurement is
+$$
+z = 
+\begin{bmatrix}
+    x_{a_1} - x_r \\
+    y_{a_1} - y_r \\
+    \vdots\\
+    x_{a_m} - x_r \\
+    y_{a_m} - y_r \\
+\end{bmatrix}
+$$ 
+
+where $\{a_1,\ldots,a_m\}$ is the list of landmark ids that were measured at timestep $t+1$. An example of our measurement model, if the robot discovered landmarks in the order $\{1,4,2\}$, and has estimates of them in its state, a relative measurement of landmarks 1 and 2 would look like this:
 
 $$
 \begin{bmatrix}
-    mx_1 \\
-    my_1 \\
-    mx_2 \\
-    my_2 \\
+    x_1 - x_r \\
+    y_1 - y_r \\
+    x_2 - x_r \\
+    y_2 - y_r \\
 \end{bmatrix}
 =
 \begin{bmatrix}
@@ -200,123 +261,29 @@ $$
     0 & -1 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
 \end{bmatrix}
 \begin{bmatrix}
-    x \\
-    y \\
-    \theta \\
-    lx_1 \\
-    ly_1 \\
-    lx_4 \\
-    ly_4 \\
-    lx_2 \\
-    ly_2 \\
+    x_r \\
+    y_r \\
+    \theta_r \\
+    x_1 \\
+    y_1 \\
+    x_4 \\
+    y_4 \\
+    x_2 \\
+    y_2 \\
 \end{bmatrix}
 $$
 
-
-
-
-
-
-$u$ is the motion:
-
-$$
-u = 
-\begin{bmatrix}
-    \Delta x \\
-    \Delta y \\
-    \Delta \theta \\
-\end{bmatrix}
-$$
-
-$z$ is the what now?
-
-$$
-z = 
-\begin{bmatrix}
-    x_1' \\
-    y_1' \\
-    x_2' \\
-    y_2' \\
-    x_3' \\
-    y_3' \\
-\end{bmatrix}
-$$
-
-$$
-z = 
-\begin{bmatrix}
-    l_{1x} \\
-    l_{1y} \\
-    l_{2x} \\
-    l_{2y} \\
-\end{bmatrix}
-$$
-
-P is the covariance of the state estimation:
-
-$$
-P =
-\begin{bmatrix}
-    x_r & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
-    0 & y_r & 0 & 0 & 0 & 0 & 0 & 0 \\
-    0 & 0 & \theta & 0 & 0 & 0 & 0 & 0 \\
-    1 & 0 & 0 & l_{1x} & 0 & 0 & 0 & 0 \\
-    0 & 1 & 0 & 0 & l_{2x} & 0 & 0 & 0 \\
-    0 & 0 & 0 & 0 & 0 & \ddots & 0 & 0 \\
-    0 & 0 & 0 & 0 & 0 & 0 & l_{nx} & 0 \\
-    0 & 0 & 0 & 0 & 0 & 0 & 0 & l_{ny} \\
-\end{bmatrix}
-$$
-
-
-
-Some other stuff, yo what is this?
-$$
-\vec{x}_i = \vec{x}_i - \langle x, y \rangle
-$$
-
-
-
-$$
-\begin{bmatrix}
-    x \\
-    y \\
-    \theta \\
-\end{bmatrix}
-\rightarrow
-\begin{bmatrix}
-    x \\
-    y \\
-    \theta \\
-    l_{x_1} \\
-    l_{y_1} \\
-    l_{x_4} \\
-    l_{y_4} \\
-    l_{x_2} \\
-    l_{y_2} \\
-\end{bmatrix}
-$$
-
-
-
-
-\subsection{Parameters}
-
-\subsection{Motion Model}
-
-\subsection{Sensor Model}
+This $H$ matrix properly computes the relative measurement from the state's absolute positions.
 
 \subsection{Distributed SLAM}
 
-To combine the results from multiple robots, we use another Kalman filter, with just a prediction step and no update.  Each robot's state vector is treated as a measurement and the covariance as the measurement noise.  The resulting estimates are fed back into each robot at each iteration.
+The most basic approach to distributed SLAM is to assume that communication is always on, and just propagate all measurements and motion commands to every robot. This is simple, but can be computationally expensive, and wastes a lot of compute on each robot combining the same measurements into the covariance matrix.
 
+Our approach is to use another Kalman filter, where the state transition model takes into account the new poses of the robots, and the measurement equation takes into account 
 
+with just an update step and no prediction.  Each robot's state vector is treated as a measurement and the covariance as the measurement noise. The resulting estimates are fed back into each robot at each iteration.
 
 \section{Results}
-
-lol
-
-
 
 \begin{thebibliography}{12}
     \bibitem{thrun2005}
@@ -329,13 +296,5 @@ lol
         A. Cunningham, M. Paluri, and F. Dellaert, ``DDF-SAM: Fully Distributed SLAM using Constrained Factor Graphs'', \emph{International Conference on Intelligent Robots and Systems (IROS)}, 2010.
 
 \end{thebibliography}
-
-
-
-
-
-
-
-
 
 \end{document}
