@@ -1,0 +1,274 @@
+\documentclass[prodmode,acmtecs]{acmsmall} % Aptara syntax
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{exscale}
+\usepackage[]{graphicx}
+\usepackage[]{graphics}
+\usepackage{listings}
+\usepackage{float}
+
+
+% Package to generate and customize Algorithm as per ACM style
+\usepackage[ruled]{algorithm2e}
+\renewcommand{\algorithmcfname}{ALGORITHM}
+\SetAlFnt{\small}
+\SetAlCapFnt{\small}
+\SetAlCapNameFnt{\small}
+\SetAlCapHSkip{0pt}
+\IncMargin{-\parindent}
+
+
+\title{
+    CMU 15-780 Graduate Artificial Intelligence
+    Final Project: Distributed SLAM
+}
+
+\author{
+    Adam Wright, Tim Kuehn, \& Nathan Slobody \\
+}
+
+
+
+
+\begin{abstract}
+For a robot to be able to use a search technique like A* to find a path through an environment, or
+use some kind of planning to execute that path, the robot must first have a map of its environment.
+Some applications of robotics, such as search and rescue or indoor fire fighting do not have the
+luxury of having an accurate map beforehand. Simultaneous Localization and Mapping (SLAM)
+techniques, which build maps based only on sensor measurements, allow autonomous robots in
+these applications to succeed. Some applications, such as search and rescue, would benefit from
+using multiple robots to cover a wide area quickly. In this project, we implemented a simple system for distributed SLAM using multiple robots in simulation.  These robots perform SLAM individually and share their data to create a larger combined map of the area.
+\end{abstract}
+
+
+
+
+
+
+\date{\today}
+
+\setcounter{tocdepth}{2}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\qt}[1]{``#1''}
+\newcommand{\code}[1]{\lstinline{#1}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\lstset{
+    language=[ANSI]C,
+    basicstyle=\ttfamily,
+    tabsize=4
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% no indentation - just spaces between paragraphs
+\usepackage[parfill]{parskip}
+
+\begin{document}
+
+\maketitle
+
+\setcounter{tocdepth}{2}
+
+\section{Introduction}
+
+Expand on abstract...
+
+\section{Model}
+
+The problem that our model addresses is that of a robot entering an unknown area but searching for known landmarks within it.  However, while it is able to recognize the landmarks upon sensing them, it still does not know what their absolute positions are - only the positions relative to itself and what it has already mapped.
+
+For analogy, consider a person walking into the Louvre museum without a map.  He does not know much about art and doesn't know where any paintings are within the museum.  However, when he sees the Mona Lisa, he recognizes it immediately and, if he has been tracing his steps from the beginning, can give a position for it relative to the museum's entry point.  If he later comes across the Venus de Milo, he can relate its position to both the Mona Lisa and his entry point.
+
+This is similar to the model we are exploring here.  It could be applicable to a variety of robotic exploration scenarios; for instance, search-and-rescue operations.
+
+In order to focus on the main problem, we abstracted away certain details in our simulation.  In particular, we assume that when a robot senses a known landmark, it can identify it immediately and without error.  Normally there would be some uncertainty involved in, say, a vision sensor identifying visual features, but for simplicity we did not consider this in our model.
+
+In addition, our motion and sensor models are simplified as described in the next section.
+
+\section{Background}
+
+\subsection{SLAM}
+
+SLAM is an active research topic with several current approaches.  The implementation we chose is Kalman filter based.
+
+\subsection{Kalman Filter}
+
+\begin{align*}
+    x_t' &= F x_t + G u_t \\
+    P_t' &= F P F^T + Q
+\end{align*}
+
+\begin{align*}
+    y &= z_t - H_t x_t' \\
+    S &= H_t P_t' H^T_t + R_t \\
+    K &= P_t' H^T_t S^{-1} \\
+    x_{t+1} &= x_t' + Ky \\
+    P_{t+1} &= (I - K H_t) P_t'
+\end{align*}
+
+
+$$
+u = 
+\begin{bmatrix}
+    \Delta x \\
+    \Delta y \\
+    \Delta \theta \\
+\end{bmatrix}
+$$
+
+$$
+z = 
+\begin{bmatrix}
+    mx_1 \\
+    my_1 \\
+    mx_2 \\
+    my_2 \\
+    mx_3 \\
+    my_3 \\
+\end{bmatrix}
+$$
+
+$$
+\begin{bmatrix}
+    4 \\
+    5 \\
+    \pi \\
+    l_{1x} \\
+    l_{1y} \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+    3 \\
+    4 \\
+    \pi  \\
+    l_{1x} \\
+    l_{1y} \\
+\end{bmatrix}
++
+\begin{bmatrix}
+    1 & 0 & 0  \\
+    0 & 1 & 0  \\
+    0 & 0 & 1  \\
+    0 & 0 & 0  \\
+    0 & 0 & 0  \\
+\end{bmatrix}
+\begin{bmatrix}
+    1 \\
+    1 \\
+    0 \\
+\end{bmatrix}
+$$
+
+$$
+\vec{m}_i = \vec{lm}_i - \langle x, y \rangle
+$$
+
+$$
+\begin{bmatrix}
+    mx_1 \\
+    my_1 \\
+    mx_2 \\
+    my_2 \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+    -1 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+    0 & -1 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+    -1 & 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+    0 & -1 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
+\end{bmatrix}
+\begin{bmatrix}
+    x \\
+    y \\
+    \theta \\
+    lx_1 \\
+    ly_1 \\
+    lx_4 \\
+    ly_4 \\
+    lx_2 \\
+    ly_2 \\
+\end{bmatrix}
+$$
+
+
+$$
+\begin{bmatrix}
+    x \\
+    y \\
+    \theta \\
+\end{bmatrix}
+\rightarrow
+\begin{bmatrix}
+    x \\
+    y \\
+    \theta \\
+    l_{x_1} \\
+    l_{y_1} \\
+    l_{x_4} \\
+    l_{y_4} \\
+    l_{x_2} \\
+    l_{y_2} \\
+\end{bmatrix}
+$$
+
+$$
+z = 
+\begin{bmatrix}
+    l_{1x} \\
+    l_{1y} \\
+    l_{2x} \\
+    l_{2y} \\
+\end{bmatrix}
+$$
+
+$$
+P =
+\begin{bmatrix}
+    x_r & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & y_r & 0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 0 & \theta & 0 & 0 & 0 & 0 & 0 \\
+    1 & 0 & 0 & l_{1x} & 0 & 0 & 0 & 0 \\
+    0 & 1 & 0 & 0 & l_{2x} & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & \ddots & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 0 & l_{nx} & 0 \\
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & l_{ny} \\
+\end{bmatrix}
+$$
+
+
+
+
+
+
+\section{Implementation}
+
+We utilized Python and NumPy and for our numerical calculations and the Tkinter graphical framework to visualize our simulation.
+
+Motion
+
+Kalman Predict
+
+Sense
+
+Kalman Update
+
+\subsection{Parameters}
+
+\subsection{Motion Model}
+
+\subsection{Sensor Model}
+
+\subsection{Distributed SLAM}
+
+\section{Results}
+
+lol
+
+
+\end{document}
