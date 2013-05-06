@@ -36,6 +36,7 @@ class FourRectangle:
 
     def draw(self, win, landmarks, rmat, noise_s):
         ret = {}
+        absret = {}
         for l in self.lines:
             l.draw(win)
         self.front.color = "red"
@@ -58,10 +59,15 @@ class FourRectangle:
                     loclmvec = np.matrix([[c.center.x + noise_x],
                         [c.center.y + noise_y]]) - rmat
                     ret[c.ident] = loclmvec[0, 0], -loclmvec[1, 0]
+                    absret[c.ident] = c.center.x, c.center.y
             except ValueError:
                 pass
             l.draw(win)
             self.drawn_lines.append(l)
+
+        print(rmat)
+        print(ret)
+        print(absret)
         return ret
                 
     def undraw(self):
@@ -171,7 +177,12 @@ class Simulator:
         self.robot_pos = g.Point(math_x, self.height - math_y)
         self.robot_hdg = -math_hdg 
 
-        return ret, np.matrix([[self.robot_pos.x],[self.height - self.robot_pos.y],[-self.robot_hdg]])
+        actrmat = np.matrix([[self.robot_pos.x]
+                            ,[self.height - self.robot_pos.y]
+                            ,[-self.robot_hdg]
+                            ])
+
+        return ret, actrmat
 
     def get_true_state(self):
         ret = []

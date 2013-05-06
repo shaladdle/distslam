@@ -56,8 +56,8 @@ class Cobot:
                 newP = np.identity(self.x.shape[0] + numadded) * meas_uncertainty
                 newP[:self.P.shape[0],:self.P.shape[1]] = self.P
 
-                relmat = np.matrix([[1, 0, 1]
-                                   ,[0, 1, 1]
+                relmat = np.matrix([[1, 0, 0]
+                                   ,[0, 1, 0]
                                    ])
 
                 lidx = self.lm_ids.index(lid)
@@ -402,11 +402,43 @@ def kalman_predict(F, G, Q, P, x, u):
     return (x_p, P_p)
 
 def kalman_update(H, R, P, x, z):
+    #print("kalman update")
     y = z - H * x
+    #print("H")
+    #print(H)
+    #print("z")
+    #print(z)
+    #print("x")
+    #print(x)
+    #print("H*x")
+    #print(H * x)
     S = H * P * H.transpose() + R
+    #print("S")
+    #print(S)
     if not S.any():
         return x, P
     K = P * H.transpose() * np.linalg.inv(S)
+    #print("y")
+    #print(y)
+    #print("K*y")
+    #print(K * y)
+    if np.linalg.norm(K*y) > 100:
+        print(np.linalg.norm(K*y))
+        print("S")
+        print(S)
+        print("H")
+        print(H)
+        print("x")
+        print(x)
+        print("z")
+        print(z)
+        print("y")
+        print(y)
+        print("K")
+        print(K)
+        print("K*y")
+        print(K*y)
+        print()
     x = x + K * y
     P = (np.identity(K.shape[0]) - K * H) * P
     return x, P
@@ -439,7 +471,11 @@ def getHzR(cobot, meas):
     H = np.zeros((2 * len(zids), 3 + 2 * len(cobot.lm_ids)))
 
     z = np.matrix([ [e] for e in z ])
-    R = np.identity(z.shape[0])
+
+    global noise_s
+    zsize = z.shape[0]
+    measv = [noise_s for _ in range(zsize)]
+    R = np.diag(measv)
 
     for lid in zids:
         zidx = zids.index(lid) * 2
@@ -448,19 +484,11 @@ def getHzR(cobot, meas):
         H[zidx:zidx+2,0:2] = np.identity(2) * (-1)
         H[zidx:zidx+2,xidx:xidx+2] = np.identity(2)
         
-        '''
         for oi, olid in enumerate(zids):
             if olid != lid:
                 ozidx = oi * 2
                 R[zidx : zidx + 2, ozidx : ozidx + 2] = 2* np.identity(2) 
-        '''
-    global noise_s
-    zsize = z.shape[0]
-    measv = [noise_s for _ in range(zsize)]
-    R = np.diag(measv)
 
-
-    #return np.matrix(H), z, np.matrix(R)
     return np.matrix(H), z, np.matrix(R)
 
 def getG(x, u):
@@ -492,7 +520,7 @@ def main():
     lm_points = []
     for i in range(30):
         lx = random.randrange(50, width-50)
-        ly = random.randrange(50, width-50)
+        ly = random.randrange(50, height-50)
         lm_points.append(g.Point(lx, ly))
 
     lm = []
@@ -602,7 +630,7 @@ def main():
                     else:
                         raise BadEventException('event {} not recognized'.format(event))
         return go
-    
+
     def makeStop(cobot):
         def stop(event):
             with cobot.lock:
