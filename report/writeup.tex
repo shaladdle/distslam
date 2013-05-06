@@ -9,7 +9,6 @@
 \usepackage{listings}
 \usepackage{float}
 
-
 % Package to generate and customize Algorithm as per ACM style
 \usepackage[ruled]{algorithm2e}
 \renewcommand{\algorithmcfname}{ALGORITHM}
@@ -19,18 +18,31 @@
 \SetAlCapHSkip{0pt}
 \IncMargin{-\parindent}
 
+% no indentation - just spaces between paragraphs
+\usepackage[parfill]{parskip}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\setcounter{tocdepth}{2}
+
+\newcommand{\qt}[1]{``#1''}
+\newcommand{\code}[1]{\lstinline{#1}}
+
+\lstset{
+    language=[ANSI]C,
+    basicstyle=\ttfamily,
+    tabsize=4
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \title{
-    CMU 15-780 Graduate Artificial Intelligence
+    CMU 15-780 Graduate Artificial Intelligence \\
     Final Project: Distributed SLAM
 }
 
 \author{
     Adam Wright, Tim Kuehn, \& Nathan Slobody \\
 }
-
-
-
 
 \begin{abstract}
 For a robot to be able to use a search technique like A* to find a path through an environment, or
@@ -42,32 +54,7 @@ these applications to succeed. Some applications, such as search and rescue, wou
 using multiple robots to cover a wide area quickly. In this project, we implemented a simple system for distributed SLAM using multiple robots in simulation.  These robots perform SLAM individually and share their data to create a larger combined map of the area.
 \end{abstract}
 
-
-
-
-
-
 \date{\today}
-
-\setcounter{tocdepth}{2}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\newcommand{\qt}[1]{``#1''}
-\newcommand{\code}[1]{\lstinline{#1}}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\lstset{
-    language=[ANSI]C,
-    basicstyle=\ttfamily,
-    tabsize=4
-}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% no indentation - just spaces between paragraphs
-\usepackage[parfill]{parskip}
 
 \begin{document}
 
@@ -83,7 +70,7 @@ Expand on abstract...
 
 The problem that our model addresses is that of a robot entering an unknown area but searching for known landmarks within it.  However, while it is able to recognize the landmarks upon sensing them, it still does not know what their absolute positions are - only the positions relative to itself and what it has already mapped.
 
-For analogy, consider a person walking into the Louvre museum without a map.  He does not know much about art and doesn't know where any paintings are within the museum.  However, when he sees the Mona Lisa, he recognizes it immediately and, if he has been tracing his steps from the beginning, can give a position for it relative to the museum's entry point.  If he later comes across the Venus de Milo, he can relate its position to both the Mona Lisa and his entry point.
+For analogy, consider a person walking into the Louvre museum without a map.  He does not know much about art and doesn't know where any paintings are within the museum.  However, he knows what the famous ones look like and when he sees the Mona Lisa he recognizes it immediately. If he has been tracing his steps from the beginning, can give a position for the painting relative to the museum's entry point.  If he later comes across the Venus de Milo, he can relate its position to both the Mona Lisa and his entry point.
 
 This is similar to the model we are exploring here.  It could be applicable to a variety of robotic exploration scenarios; for instance, search-and-rescue operations.
 
@@ -95,7 +82,9 @@ In addition, our motion and sensor models are simplified as described in the nex
 
 \subsection{SLAM}
 
-SLAM is an active research topic with several current approaches.  The implementation we chose is Kalman filter based.
+The idea behind SLAM is to use a probabilistic method to solve mapping and localization as a single problem. 
+
+SLAM is an active research topic with several current approaches, including various varieties of Kalman filtering (linear, extended, unscented), particle filtering, smoothing, and others.  The implementation we chose is based on a linear Kalman filter.
 
 \subsection{Kalman Filter}
 
