@@ -398,7 +398,7 @@ class EstimateDrawer:
 
 def kalman_predict(F, G, Q, P, x, u):
     x_p = F * x + G * u
-    P_p = F * P * F.transpose()# + Q
+    P_p = F * P * F.transpose() + Q
     return (x_p, P_p)
 
 def kalman_update(H, R, P, x, z):
@@ -422,23 +422,23 @@ def kalman_update(H, R, P, x, z):
     #print(y)
     #print("K*y")
     #print(K * y)
-    if np.linalg.norm(K*y) > 100:
-        print(np.linalg.norm(K*y))
-        print("S")
-        print(S)
-        print("H")
-        print(H)
-        print("x")
-        print(x)
-        print("z")
-        print(z)
-        print("y")
-        print(y)
-        print("K")
-        print(K)
-        print("K*y")
-        print(K*y)
-        print()
+    #if np.linalg.norm(K*y) > 100:
+    #    print(np.linalg.norm(K*y))
+    #    print("S")
+    #    print(S)
+    #    print("H")
+    #    print(H)
+    #    print("x")
+    #    print(x)
+    #    print("z")
+    #    print(z)
+    #    print("y")
+    #    print(y)
+    #    print("K")
+    #    print(K)
+    #    print("K*y")
+    #    print(K*y)
+    #    print()
     x = x + K * y
     P = (np.identity(K.shape[0]) - K * H) * P
     return x, P

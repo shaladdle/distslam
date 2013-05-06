@@ -65,9 +65,9 @@ class FourRectangle:
             l.draw(win)
             self.drawn_lines.append(l)
 
-        print(rmat)
-        print(ret)
-        print(absret)
+        #print(rmat)
+        #print(ret)
+        #print(absret)
         return ret
                 
     def undraw(self):
