@@ -20,11 +20,15 @@ class Cobot:
         self.reverse = False
         if u is None:
             self.u = np.zeros((3, 1))
+        else:
+            self.u = u
         if x is None:
             self.x = np.zeros((3,1))
             self.x[0][0] = random.randrange(50, width-50)
             self.x[1][0] = random.randrange(50, width-50)
             self.x[2][0] = 0
+        else:
+            self.x = x
 
     def add_new_landmarks(self, meas):
         xtmp = self.x.copy()
@@ -316,6 +320,17 @@ def getG(x, u):
 def getF(x):
     return np.matrix(np.identity(x.shape[0]))
 
+def print_results(cobot, landmarks):
+    err = 0
+    for lm in landmarks:
+        if lm.ident in cobot.lm_ids:
+            cob_lm_idx = 3 + 2 * cobot.lm_ids.index(lm.ident)
+            xerr = abs(lm.center.x - cobot.x[cob_lm_idx,0])
+            yerr = abs(height - lm.center.y - cobot.x[cob_lm_idx+1,0])
+            err += xerr + yerr
+    
+    print("Error is:", err)
+
 def main():
     global width, height, lm, meas_uncertainty, nextident
     nextident = 0
@@ -324,22 +339,39 @@ def main():
     height = 800
     win = g.GraphWin('SLAM Simulator', width, height)
 
+    waypoints = []
     lm_points = []
-    for i in range(30):
-        lx = random.randrange(50, width-50)
-        ly = random.randrange(50, width-50)
-        lm_points.append(g.Point(lx, ly))
+    user_control = False
+    if user_control:
+        for i in range(30):
+            lx = random.randrange(50, width-50)
+            ly = random.randrange(50, width-50)
+            lm_points.append(g.Point(lx, ly))
+    else:
+        xtmp = 50
+        while xtmp < width - 50:
+            lm_points.append(g.Point(xtmp, 200))
+            xtmp+= 25
 
     lm = []
     for i, lmp in enumerate(lm_points):
         lm.append(Landmark(win, i, 10, lmp))
 
     # set initial state and covariance matrix
-    numbots = 2
+    numbots = 1
     P = np.matrix(np.identity((3)))
     cobot_sim = []
     for _ in range(numbots):
-        cobot = Cobot(P)
+        if user_control:
+            cobot = Cobot(P)
+        else:
+            u = np.zeros((3,1))
+            u[0,0] = 4
+            x = np.zeros((3,1))
+            x[0,0] = 0
+            x[1,0] = height - 150
+            cobot = Cobot(P, u, x)
+
         sim = Simulator(win, g.Point(cobot.x[0,0], height - cobot.x[1,0]), - cobot.x[2,0], width, height)
         sim.set_landmarks(lm)
         cobot_sim.append((cobot, sim))
@@ -352,6 +384,10 @@ def main():
         # Close the application if someone closes the graphics window
         if win.isClosed():
             return
+
+        if not user_control and cobot_sim[0][1].robot_pos.x >= width - 50:
+            print_results(cobots[0], lm)
+            exit()
 
         for cobot, sim in cobot_sim:
             meas = sim.do_motors(cobot.u, cobot.reverse)
@@ -407,47 +443,37 @@ def main():
 
     cobots = list(zip(*cobot_sim))[0]
 
-    go = makeGo(cobots[1])
-    win.bind("<KeyPress-w>", go)
-    win.bind("<KeyPress-s>", go)
-    win.bind("<KeyPress-a>", makeTurn(cobots[1], .05, go))
-    win.bind("<KeyPress-d>", makeTurn(cobots[1], -.05, go))
-    stop = makeStop(cobots[1])
-    win.bind("<KeyRelease-w>", stop)
-    win.bind("<KeyRelease-s>", stop)
-    win.bind("<KeyRelease-a>", stop)
-    win.bind("<KeyRelease-d>", stop)
+    if user_control:
+        if numbots == 2:
+            go = makeGo(cobots[1])
+            win.bind("<KeyPress-w>", go)
+            win.bind("<KeyPress-s>", go)
+            win.bind("<KeyPress-a>", makeTurn(cobots[1], .05, go))
+            win.bind("<KeyPress-d>", makeTurn(cobots[1], -.05, go))
+            stop = makeStop(cobots[1])
+            win.bind("<KeyRelease-w>", stop)
+            win.bind("<KeyRelease-s>", stop)
+            win.bind("<KeyRelease-a>", stop)
+            win.bind("<KeyRelease-d>", stop)
 
-    go = makeGo(cobots[0])
-    win.bind("<KeyPress-Up>", go)
-    win.bind("<KeyPress-Down>", go)
-    win.bind("<KeyPress-Left>", makeTurn(cobots[0], .05, go))
-    win.bind("<KeyPress-Right>", makeTurn(cobots[0], -.05, go))
-    stop = makeStop(cobots[0])
-    win.bind("<KeyRelease-Up>", stop)
-    win.bind("<KeyRelease-Down>", stop)
-    win.bind("<KeyRelease-Left>", stop)
-    win.bind("<KeyRelease-Right>", stop)
-    win.pack()
-    win.focus_set()
+        go = makeGo(cobots[0])
+        win.bind("<KeyPress-Up>", go)
+        win.bind("<KeyPress-Down>", go)
+        win.bind("<KeyPress-Left>", makeTurn(cobots[0], .05, go))
+        win.bind("<KeyPress-Right>", makeTurn(cobots[0], -.05, go))
+        stop = makeStop(cobots[0])
+        win.bind("<KeyRelease-Up>", stop)
+        win.bind("<KeyRelease-Down>", stop)
+        win.bind("<KeyRelease-Left>", stop)
+        win.bind("<KeyRelease-Right>", stop)
+        win.pack()
+        win.focus_set()
 
-    ed2 = EstimateDrawer(win)
     iters = 0
     while True:
         timestep()
 
         sleep(0.01)
-
-        """
-        bigcobot = combine_estimates(cobots)
-
-        ed2.draw_big(bigcobot)
-
-        iters += 1
-        if not iters % 50:
-            print(cobots[0].P)
-            print(cobots[0].x)
-        """
 
 if __name__ == "__main__":
     main()
