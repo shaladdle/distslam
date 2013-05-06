@@ -89,9 +89,7 @@ The Kalman filter is a method of updating prior predictions based on current obs
 The transition model is given by:
 \begin{align*}
     x_t' &= F x_t + G u_t \\
-\end{align*}
-
-The measurement model is given by:
+\end{align*} The measurement model is given by:
 
 \begin{align*}
     Z_k &= H_k x_k + v_k
@@ -128,27 +126,27 @@ The matrix definitions are as follows:
 
 \section{Implementation}
 
+We assume a simple linear system with gaussian transtion and sensor noise.  Covariance matrices express relationships between landmarks and robot positions and between landmarks themselves.  
+
 We utilized Python and NumPy and for our numerical calculations and the Tkinter graphical framework to visualize our simulation.
 
-Below is a screenshot of the simulation:
+Figure~\ref{fig:simulation} shows a screenshot of the simulation.  The black circles represent unique landmarks.  The blue and red circles around or inside landmarks are the robots' estimations of where the landmarks are; the size of the circle represents its uncertainty about the landark's exact position, with a larger circle representing more uncertainty.
 
 \begin{figure}[h!]
 \includegraphics[width=\textwidth]{screenshot.png}
-\caption{Simulation environment}
+\caption{Simulation environment.}
+\label{fig:simulation}
 \end{figure}
 
-The black circles represent unique landmarks.
 
+The blue and red circles on the robots themselves represent the robots' estimation and uncertainty about their own position.
 
-
-
-We assume a simple linear system with gaussian transtion and sensor noise.  Covariance matrices express relationships between landmarks and robot positions and between landmarks themselves.  
-
-A diagram of the system is shown below:
+A diagram of the system is shown Figure~\ref{fig:system}.
 
 \begin{figure}[h!]
 \includegraphics[width=\textwidth]{systemdiagram.png}
-\caption{The flow of the program. Gaussian noise is added at the interfaces of the simulator to an uncertain environment.}
+\caption{The flow of the program.}
+\label{fig:system}
 \end{figure}
 
 Kalman Predict
