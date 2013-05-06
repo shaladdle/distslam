@@ -7,6 +7,7 @@ from math import sin, cos, sqrt
 from vector import Vector2
 from sys import exit
 from threading import Lock
+import traceback
 
 np.set_printoptions(linewidth=300,precision=4,suppress=True)
 
@@ -503,15 +504,22 @@ def main():
             with cobot.lock:
                 local_u = cobot.u.copy()
                 local_x = cobot.x.copy()
-                local_P = cobot.P.copy()
+                local_reverse = cobot.reverse
 
             meas, simx = sim.do_motors(local_u, cobot.reverse)
-
-            if (local_x[:3] != simx).all():
-                exit()
-
             # add previously unseen landmarks to the state
-            cobot.add_new_landmarks(meas)
+            try:
+                with cobot.lock:
+                    cobot.add_new_landmarks(meas)
+                    local_x = cobot.x
+                    local_P = cobot.P
+            except ValueError as e:
+                traceback.print_exc()
+                print(e)
+                print(meas)
+                print(cobot.x)
+                print(cobot.P)
+                exit()
 
             # get matrices for kalman predict
             Q = getQ(local_x, local_u)
@@ -519,10 +527,20 @@ def main():
             G = getG(local_x, local_u)
             local_x, local_P = kalman_predict(F, G, Q, local_P, local_x, local_u)
 
+            if (local_x[:3] != simx).all():
+                exit()
+
             if meas and False:
-                # compute H, z, and R
-                H, z, R = getHzR(cobot, meas)
-                local_x, local_P = kalman_update(H, R, local_P, local_x, z)
+                try:
+                    # compute H, z, and R
+                    H, z, R = getHzR(cobot, meas)
+                    local_x, local_P = kalman_update(H, R, local_P, local_x, z)
+                except ValueError as e:
+                    traceback.print_exc()
+                    print(H)
+                    print(z)
+                    print(R)
+                    exit()
             
             local_states.append((local_x, local_P))
 
