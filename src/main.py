@@ -402,18 +402,11 @@ def main():
     win.pack()
     win.focus_set()
 
-    iters = 0
     while True:
         timestep()
+        sleep(.025)
+        #combine_estimates(cobots)
 
-        sleep(0.01)
-
-        combine_estimates(cobots)
-
-        iters += 1
-        if not iters % 50:
-            print(cobots[0].P)
-            print(cobots[0].x)
 
 if __name__ == "__main__":
     main()
