@@ -222,7 +222,6 @@ class BigCobot(Cobot):
             H, z, R = self.getHzR(update_list, cobot)
 
             self.x, self.P = kalman_update(H, R, self.P, self.x, z)
-            print(P)
 
 def getBigH(bigcobot, cobot):
     H = np.zeros(cobot.x.shapes[0], bigcobot.x.shapes[0])
@@ -401,17 +400,7 @@ def kalman_predict(F, G, Q, P, x, u):
 
 def kalman_update(H, R, P, x, z):
     y = z - H * x
-    print("P")
-    print(P)
-    print("H")
-    print(H)
-    print("H*P")
-    print(H*P)
-    print("P*H^T")
-    print(P.copy()*H.copy().transpose())
     S = H * P * H.transpose() + R
-    print("S")
-    print(S)
     K = P * H.transpose() * np.linalg.inv(S)
     x = x + K * y
     P = (np.identity(K.shape[0]) - K * H) * P
@@ -510,45 +499,30 @@ def main():
 
         local_states = []
         for cobot, sim in cobot_sim:
-            print("Acquiring lock (timestep)", cobot.ident)
             # startup
             with cobot.lock:
                 local_u = cobot.u.copy()
                 local_x = cobot.x.copy()
                 local_P = cobot.P.copy()
 
-            print("Acquired lock (timestep)", cobot.ident)
             meas, simx = sim.do_motors(local_u, cobot.reverse)
-            print("le robot thinks u = ")
-            print(local_u)
-            print("robot estimate of itself = ")
-            print(local_x[:3])
-            print("sim robot pos= ")
-            print(simx)
 
             if (local_x[:3] != simx).all():
-                print("Exiting because states are not equal")
                 exit()
 
             # add previously unseen landmarks to the state
             cobot.add_new_landmarks(meas)
-            print("add_new_landmarks")
 
             # get matrices for kalman predict
             Q = getQ(local_x, local_u)
             F = getF(local_x)
             G = getG(local_x, local_u)
-            print("did matrices")
             local_x, local_P = kalman_predict(F, G, Q, local_P, local_x, local_u)
 
-            print("did predict")
-            if not meas or True:
-                print("Releasing lock (timestep)", cobot.ident)
-            else:
+            if meas and False:
                 # compute H, z, and R
                 H, z, R = getHzR(cobot, meas)
                 local_x, local_P = kalman_update(H, R, local_P, local_x, z)
-                print("Releasing lock (timestep)", cobot.ident)
             
             local_states.append((local_x, local_P))
 
@@ -560,28 +534,36 @@ def main():
 
         ed.draw((x, P) for x, P in local_states)
 
+    class BadEventException(Exception):
+        'For events not recognized by an event handler'
+        pass
+
     def makeGo(cobot):
         def go(event):
             # set velocities
-            print("Acquiring lock (makeGo)", cobot.ident)
             with cobot.lock:
-                print("Acquired lock (makeGo)", cobot.ident)
                 if event.keysym in ('Up', 'w', 'Down', 's'):
                     cobot.u[0][0] = 2 * cos(cobot.x[2][0])
                     cobot.u[1][0] = 2 * sin(cobot.x[2][0])
                     cobot.u[2][0] = 0
                     if event.keysym in ('Up', 'w'):
                         cobot.reverse = False
-                    if event.keysym in ('Down', 's'):
+                    elif event.keysym in ('Down', 's'):
+                        cobot.u[0][0] *= -1
+                        cobot.u[1][0] *= -1
                         cobot.reverse = True
+                    else:
+                        raise BadEventException('event {} not recognized'.format(event))
+
                 elif event.keysym in ('Left', 'Right', 'a', 'd'):
                     cobot.u[0][0] = 0
                     cobot.u[1][0] = 0
                     if event.keysym in ('Left', 'a'):
                         cobot.u[2][0] = 0.05
-                    if event.keysym in ('Right', 'd'):
+                    elif event.keysym in ('Right', 'd'):
                         cobot.u[2][0] = -0.05
-            print("Releasing lock (makeGo)", cobot.ident)
+                    else:
+                        raise BadEventException('event {} not recognized'.format(event))
         return go
     
     def makeStop(cobot):

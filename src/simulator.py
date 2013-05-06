@@ -123,9 +123,6 @@ class Simulator:
 
         u += self.motion_noise * noise
 
-        print("do_motors thinks u = ")
-        print(u)
-
         # math coordinates
         disp = np.linalg.norm(u[:2])
         if reverse:
