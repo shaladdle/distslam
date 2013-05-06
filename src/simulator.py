@@ -81,6 +81,8 @@ class Landmark:
         self.win = win
         self.circ = g.Circle(center, rad)
         self.circ.draw(win)
+        self.text = g.Text(center, str(ident))
+        self.text.draw(win)
 
 class Simulator:
     def __init__(self, win, start_pt, start_hdg, width, height):
