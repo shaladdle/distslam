@@ -21,7 +21,7 @@
 
 
 \title{
-    CMU 15-780 Graduate Artificial Intelligence
+    CMU 15\-780 Graduate Artificial Intelligence
     Final Project: Distributed SLAM
 }
 
@@ -77,11 +77,11 @@ using multiple robots to cover a wide area quickly. In this project, we implemen
 
 \section{Introduction}
 
-Expand on abstract...
+Expand on abstract\ldots
 
 \section{Model}
 
-The problem that our model addresses is that of a robot entering an unknown area but searching for known landmarks within it.  However, while it is able to recognize the landmarks upon sensing them, it still does not know what their absolute positions are - only the positions relative to itself and what it has already mapped.
+The problem that our model addresses is that of a robot entering an unknown area but searching for known landmarks within it.  However, while it is able to recognize the landmarks upon sensing them, it still does not know what their absolute positions are \- only the positions relative to itself and what it has already mapped.
 
 For analogy, consider a person walking into the Louvre museum without a map.  He does not know much about art and doesn't know where any paintings are within the museum.  However, when he sees the Mona Lisa, he recognizes it immediately and, if he has been tracing his steps from the beginning, can give a position for it relative to the museum's entry point.  If he later comes across the Venus de Milo, he can relate its position to both the Mona Lisa and his entry point.
 
@@ -112,7 +112,6 @@ SLAM is an active research topic with several current approaches.  The implement
     P_{t+1} &= (I - K H_t) P_t'
 \end{align*}
 
-
 $$
 u = 
 \begin{bmatrix}
@@ -125,12 +124,12 @@ $$
 $$
 z = 
 \begin{bmatrix}
-    mx_1 \\
-    my_1 \\
-    mx_2 \\
-    my_2 \\
-    mx_3 \\
-    my_3 \\
+    x_1' \\
+    y_1' \\
+    x_2' \\
+    y_2' \\
+    x_3' \\
+    y_3' \\
 \end{bmatrix}
 $$
 
@@ -166,7 +165,7 @@ $$
 $$
 
 $$
-\vec{m}_i = \vec{lm}_i - \langle x, y \rangle
+\vec{x}_i = \vec{x}_i - \langle x, y \rangle
 $$
 
 $$
@@ -241,16 +240,12 @@ P =
 \end{bmatrix}
 $$
 
+We utilized Python and NumPy and for our numerical calculations and the Tkinter graphical framework to visualize our simulation. A diagram of the system is shown below:
 
-
-
-
-
-\section{Implementation}
-
-We utilized Python and NumPy and for our numerical calculations and the Tkinter graphical framework to visualize our simulation.
-
-Motion
+\begin{figure}[h!]
+\includegraphics[width=\textwidth]{systemdiagram.png}
+\caption{The flow of the program. Gaussian noise is added at the interfaces of the simulator to an uncertain environment.}
+\end{figure}
 
 Kalman Predict
 
