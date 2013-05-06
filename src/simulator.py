@@ -35,7 +35,6 @@ class FourRectangle:
                         self.sight_range * sin(theta) + self.eye.y)))
 
     def draw(self, win, landmarks, rmat):
-        print("hereA")
         ret = {}
         for l in self.lines:
             l.draw(win)
@@ -58,9 +57,7 @@ class FourRectangle:
                     ret[c.ident] = loclmvec[0, 0], -loclmvec[1, 0]
             except ValueError:
                 pass
-            print("hereB")
             l.draw(win)
-            print("hereC")
             self.drawn_lines.append(l)
         return ret
                 
@@ -143,7 +140,6 @@ class Simulator:
                            ,[sin(math_hdg),  cos(math_hdg)]
                            ])
 
-        print("here1")
         # the position of the robot in math frame
         math_pos = np.matrix([[math_x]
                              ,[math_y]])
@@ -151,7 +147,6 @@ class Simulator:
         # compute the box points unrotated
         math_topc = np.matrix([[math_x - 10], [math_y + 15]])
         math_botc = np.matrix([[math_x + 10], [math_y - 15]])
-        print("here2")
 
 
         corners = [ np.matrix([[math_x - 10], [math_y + 15]])
@@ -167,23 +162,17 @@ class Simulator:
         cpoints                = (g.Point(x, self.height - y) for [x], [y] in corners_arr_rot_glob)
 
         # redraw the box with the rotated box
-        print("here3")
         self.robotrect.undraw()
-        print("here4")
         self.robotrect = FourRectangle(cpoints, self.robot_hdg, self.sense_fov, self.sense_max);
-        print("here5")
         rmat = np.matrix([[self.robot_pos.x]
                          ,[self.robot_pos.y]
                          ])
-        print("here6")
         ret = self.robotrect.draw(self.win, self.landmarks, rmat)
-        print("here6")
 
         # update the robot position
         self.robot_pos = g.Point(math_x, self.height - math_y)
         self.robot_hdg = -math_hdg 
 
-        print("returning to timestep")
         return ret, np.matrix([[self.robot_pos.x],[self.height - self.robot_pos.y],[-self.robot_hdg]])
 
     def get_true_state(self):
