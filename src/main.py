@@ -507,7 +507,6 @@ def main():
                 local_reverse = cobot.reverse
 
             meas, simx = sim.do_motors(local_u, cobot.reverse)
-
             # add previously unseen landmarks to the state
             try:
                 with cobot.lock:
@@ -553,6 +552,10 @@ def main():
 
         ed.draw((x, P) for x, P in local_states)
 
+    class BadEventException(Exception):
+        'For events not recognized by an event handler'
+        pass
+
     def makeGo(cobot):
         def go(event):
             # set velocities
@@ -563,15 +566,22 @@ def main():
                     cobot.u[2][0] = 0
                     if event.keysym in ('Up', 'w'):
                         cobot.reverse = False
-                    if event.keysym in ('Down', 's'):
+                    elif event.keysym in ('Down', 's'):
+                        cobot.u[0][0] *= -1
+                        cobot.u[1][0] *= -1
                         cobot.reverse = True
+                    else:
+                        raise BadEventException('event {} not recognized'.format(event))
+
                 elif event.keysym in ('Left', 'Right', 'a', 'd'):
                     cobot.u[0][0] = 0
                     cobot.u[1][0] = 0
                     if event.keysym in ('Left', 'a'):
                         cobot.u[2][0] = 0.05
-                    if event.keysym in ('Right', 'd'):
+                    elif event.keysym in ('Right', 'd'):
                         cobot.u[2][0] = -0.05
+                    else:
+                        raise BadEventException('event {} not recognized'.format(event))
         return go
     
     def makeStop(cobot):
