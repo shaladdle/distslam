@@ -149,15 +149,6 @@ A diagram of the system is shown Figure~\ref{fig:system}.
 \label{fig:system}
 \end{figure}
 
-Kalman Predict
-
-Sense
-
-Kalman Update
-
-
-
-
 An example of our transition mode, $x' = x + Gu$:
 
 
@@ -223,10 +214,10 @@ $$
 
 
 
-Some other stuff, yo what is this?
 
 
 
+$u$ is the motion:
 
 $$
 u = 
@@ -236,6 +227,8 @@ u =
     \Delta \theta \\
 \end{bmatrix}
 $$
+
+$z$ is the what now?
 
 $$
 z = 
@@ -249,14 +242,38 @@ z =
 \end{bmatrix}
 $$
 
+$$
+z = 
+\begin{bmatrix}
+    l_{1x} \\
+    l_{1y} \\
+    l_{2x} \\
+    l_{2y} \\
+\end{bmatrix}
+$$
 
+P is the covariance of the state estimation:
+
+$$
+P =
+\begin{bmatrix}
+    x_r & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & y_r & 0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 0 & \theta & 0 & 0 & 0 & 0 & 0 \\
+    1 & 0 & 0 & l_{1x} & 0 & 0 & 0 & 0 \\
+    0 & 1 & 0 & 0 & l_{2x} & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & \ddots & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 0 & l_{nx} & 0 \\
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & l_{ny} \\
+\end{bmatrix}
+$$
+
+
+
+Some other stuff, yo what is this?
 $$
 \vec{x}_i = \vec{x}_i - \langle x, y \rangle
 $$
-
-
-
-
 
 
 
@@ -279,34 +296,6 @@ $$
     l_{y_2} \\
 \end{bmatrix}
 $$
-
-$$
-z = 
-\begin{bmatrix}
-    l_{1x} \\
-    l_{1y} \\
-    l_{2x} \\
-    l_{2y} \\
-\end{bmatrix}
-$$
-
-$$
-P =
-\begin{bmatrix}
-    x_r & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
-    0 & y_r & 0 & 0 & 0 & 0 & 0 & 0 \\
-    0 & 0 & \theta & 0 & 0 & 0 & 0 & 0 \\
-    1 & 0 & 0 & l_{1x} & 0 & 0 & 0 & 0 \\
-    0 & 1 & 0 & 0 & l_{2x} & 0 & 0 & 0 \\
-    0 & 0 & 0 & 0 & 0 & \ddots & 0 & 0 \\
-    0 & 0 & 0 & 0 & 0 & 0 & l_{nx} & 0 \\
-    0 & 0 & 0 & 0 & 0 & 0 & 0 & l_{ny} \\
-\end{bmatrix}
-$$
-
-
-
-
 
 
 
