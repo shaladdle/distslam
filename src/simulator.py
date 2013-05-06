@@ -171,6 +171,7 @@ class Simulator:
         rmat = np.matrix([[self.robot_pos.x]
                          ,[self.robot_pos.y]
                          ])
+        print('redrawing robot at: ({}, {})\n'.format(math_x, math_y))
         ret = self.robotrect.draw(self.win, self.landmarks, rmat, noise_s)
 
         # update the robot position

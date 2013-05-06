@@ -397,13 +397,17 @@ class EstimateDrawer:
             self.states.append((state_x, state_P))
 
 def kalman_predict(F, G, Q, P, x, u):
+    print('F:\n{}\nG:\n{}\nQ:\n{}\nP:\n{}\nx:\n{}\nu:\n{}\n'.format(F, G, Q, P, x, u))
     x_p = F * x + G * u
     P_p = F * P * F.transpose() + Q
+    sleep(5)
     return (x_p, P_p)
 
 def kalman_update(H, R, P, x, z):
     #print("kalman update")
-    y = z - H * x
+    print('H:\n{}\nR:\n{}\nP\n{}\nx:{}\nz:{}\n'.format(H, R, P, x, z))
+    v = z - H * x
+    print('v:\n{}'.format(v))
     #print("H")
     #print(H)
     #print("z")
@@ -413,11 +417,12 @@ def kalman_update(H, R, P, x, z):
     #print("H*x")
     #print(H * x)
     S = H * P * H.transpose() + R
+    print('S:\n{}'.format(S))
     #print("S")
     #print(S)
     if not S.any():
         return x, P
-    K = P * H.transpose() * np.linalg.inv(S)
+    W = P * H.transpose() * np.linalg.inv(S)
     #print("y")
     #print(y)
     #print("K*y")
@@ -439,8 +444,9 @@ def kalman_update(H, R, P, x, z):
     #    print("K*y")
     #    print(K*y)
     #    print()
-    x = x + K * y
-    P = (np.identity(K.shape[0]) - K * H) * P
+    x = x + W * v
+    print('updated x:\n{}\n'.format(x))
+    P = P - W*S*W.transpose()#(np.identity(K.shape[0]) - K * H) * P
     return x, P
 
 def getQ(x, u):
@@ -455,7 +461,8 @@ def getQ(x, u):
 
     global noise_xy, noise_t
     variances = (noise_xy, noise_xy, noise_t)
-    variances = [v * delta for v, [delta] in zip(variances, u[:3])]
+    variances = [v * abs(delta) for v, [delta] in zip(variances, u[:3])]
+    print('variances: {}\n'.format(variances))
 
     ret[0:3,0:3] = np.diag(variances)
 
@@ -554,9 +561,10 @@ def main():
                 local_x = cobot.x.copy()
                 local_reverse = cobot.reverse
 
-            global noise_xy, noise_t, noise_s
+            global noise_xy, noise_t, noise_s, height
             meas, simx = sim.do_motors(local_u, cobot.reverse,
                     noise_xy, noise_t, noise_s)
+            print('robot_pos: ({}, {})\n'.format(sim.robot_pos.x, height - sim.robot_pos.y))
             # add previously unseen landmarks to the state
             try:
                 with cobot.lock:
@@ -608,8 +616,8 @@ def main():
             # set velocities
             with cobot.lock:
                 if event.keysym in ('Up', 'w', 'Down', 's'):
-                    cobot.u[0][0] = 5 * cos(cobot.x[2][0])
-                    cobot.u[1][0] = 5 * sin(cobot.x[2][0])
+                    cobot.u[0][0] = 25 * cos(cobot.x[2][0])
+                    cobot.u[1][0] = 25 * sin(cobot.x[2][0])
                     cobot.u[2][0] = 0
                     if event.keysym in ('Up', 'w'):
                         cobot.reverse = False
