@@ -81,8 +81,8 @@ class Landmark:
 
 class Simulator:
     def __init__(self, win, start_pt, start_hdg, width, height):
-        self.motion_noise = 0.2
-        self.sense_noise = 0.01
+        self.motion_noise = 0
+        self.sense_noise = 0.0
 
         self.sense_max = 100
         self.sense_fov = 2 * pi / 3
@@ -120,8 +120,11 @@ class Simulator:
             noise[1][0] = 0
         if (u[2][0] == 0):
             noise[2][0] = 0
-            
+
         u += self.motion_noise * noise
+
+        print("do_motors thinks u = ")
+        print(u)
 
         # math coordinates
         disp = np.linalg.norm(u[:2])
@@ -168,9 +171,9 @@ class Simulator:
 
         # update the robot position
         self.robot_pos = g.Point(math_x, self.height - math_y)
-        self.robot_hdg = -math_hdg % (2 * pi)
+        self.robot_hdg = -math_hdg 
 
-        return ret
+        return ret, np.matrix([[self.robot_pos.x],[self.height - self.robot_pos.y],[-self.robot_hdg]])
 
     def get_true_state(self):
         ret = []

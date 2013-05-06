@@ -5,6 +5,8 @@ import graphics as g
 import random
 from math import sin, cos, sqrt
 from vector import Vector2
+from sys import exit
+from threading import Lock
 
 np.set_printoptions(linewidth=300,precision=4,suppress=True)
 
@@ -18,6 +20,7 @@ class Cobot:
         self.lm_ids = []
         self.P = P
         self.reverse = False
+        self.lock = Lock()
         if u is None:
             self.u = np.zeros((3, 1))
         if x is None:
@@ -219,6 +222,7 @@ class BigCobot(Cobot):
             H, z, R = self.getHzR(update_list, cobot)
 
             self.x, self.P = kalman_update(H, R, self.P, self.x, z)
+            print(P)
 
 def getBigH(bigcobot, cobot):
     H = np.zeros(cobot.x.shapes[0], bigcobot.x.shapes[0])
@@ -392,16 +396,25 @@ class EstimateDrawer:
 
 def kalman_predict(F, G, Q, P, x, u):
     x_p = F * x + G * u
-    P_p = F * P * F.transpose() + Q
+    P_p = F * P * F.transpose()# + Q
     return (x_p, P_p)
 
 def kalman_update(H, R, P, x, z):
     y = z - H * x
+    print("P")
+    print(P)
+    print("H")
+    print(H)
+    print("H*P")
+    print(H*P)
+    print("P*H^T")
+    print(P.copy()*H.copy().transpose())
     S = H * P * H.transpose() + R
+    print("S")
+    print(S)
     K = P * H.transpose() * np.linalg.inv(S)
     x = x + K * y
     P = (np.identity(K.shape[0]) - K * H) * P
-
     return (x, P)
 
 def getQ(x, u):
@@ -442,18 +455,8 @@ def getHzR(cobot, meas):
                 ozidx = oi * 2
                 R[zidx : zidx + 2, ozidx : ozidx + 2] = 2* np.identity(2) 
 
-
-    #R = 2 * np.identity(z.shape[0]) + np.ones((z.shape[0],z.shape[0]))
-    
-
-    return np.matrix(H), z, np.matrix(R)
-
-def getH(x, z):
-    a = np.zeros((z.shape[0], 3))
-    b = np.identity(z.shape[0])
-    ret = np.concatenate((a,b), axis=1)
-
-    return np.matrix(ret)
+    #return np.matrix(H), z, np.matrix(R)
+    return np.matrix(H), z, np.shape(np.zeros((z.shape[0],z.shape[0])))
 
 def getG(x, u):
     ret = [[1,0,0]
@@ -506,65 +509,79 @@ def main():
             return
 
         for cobot, sim in cobot_sim:
-            meas = sim.do_motors(cobot.u, cobot.reverse)
+            print("Acquiring lock (timestep)", cobot.ident)
+            with cobot.lock:
+                meas, simx = sim.do_motors(cobot.u, cobot.reverse)
+                print("le robot thinks u = ")
+                print(cobot.u)
+                print("robot estimate of itself = ")
+                print(cobot.x[:3])
+                print("sim robot pos= ")
+                print(simx)
 
-            # add previously unseen landmarks to the state
-            cobot.add_new_landmarks(meas)
+                if (cobot.x[:3] != simx).all():
+                    print("Exiting because states are not equal")
+                    exit()
 
-            # get matrices for kalman predict
-            Q = getQ(cobot.x, cobot.u)
-            F = getF(cobot.x)
-            G = getG(cobot.x, cobot.u)
-            cobot.x, cobot.P = kalman_predict(F, G, Q, cobot.P, cobot.x, cobot.u)
+                # add previously unseen landmarks to the state
+                cobot.add_new_landmarks(meas)
+                print("add_new_landmarks")
 
-            if not meas:
-                continue
+                # get matrices for kalman predict
+                Q = getQ(cobot.x, cobot.u)
+                F = getF(cobot.x)
+                G = getG(cobot.x, cobot.u)
+                print("did matrices")
+                cobot.x, cobot.P = kalman_predict(F, G, Q, cobot.P, cobot.x, cobot.u)
 
-            # compute H, z, and R
-            H, z, R = getHzR(cobot, meas)
-            cobot.x, cobot.P = kalman_update(H, R, cobot.P, cobot.x, z)
+                print("did predict")
+                if not meas or True:
+                    print("Releasing lock (timestep)", cobot.ident)
+                    continue
+
+                # compute H, z, and R
+                H, z, R = getHzR(cobot, meas)
+                cobot.x, cobot.P = kalman_update(H, R, cobot.P, cobot.x, z)
+
 
         ed.draw((cobot.x, cobot.P) for cobot, _ in cobot_sim)
 
     def makeGo(cobot):
         def go(event):
             # set velocities
-            if event.keysym in ('Up', 'w', 'Down', 's'):
-                cobot.u[1][0] = 2 * sin(cobot.x[2][0])
-                cobot.u[0][0] = 2 * cos(cobot.x[2][0])
-                if event.keysym in ('Up', 'w'):
-                    cobot.reverse = False
-                if event.keysym in ('Down', 's'):
-                    cobot.reverse = True
-
-            elif event.keysym in ('a', 'd', 'Left', 'Right'):
-                disp = np.linalg.norm(cobot.u[:2])
-                cobot.u[1][0] = disp * sin(cobot.x[2][0])
-                cobot.u[0][0] = disp * cos(cobot.x[2][0])
-
+            print("Acquiring lock (makeGo)", cobot.ident)
+            with cobot.lock:
+                if event.keysym in ('Up', 'w', 'Down', 's'):
+                    cobot.u[0][0] = 2 * cos(cobot.x[2][0])
+                    cobot.u[1][0] = 2 * sin(cobot.x[2][0])
+                    cobot.u[2][0] = 0
+                    if event.keysym in ('Up', 'w'):
+                        cobot.reverse = False
+                    if event.keysym in ('Down', 's'):
+                        cobot.reverse = True
+                elif event.keysym in ('Left', 'Right', 'a', 'd'):
+                    cobot.u[0][0] = 0
+                    cobot.u[1][0] = 0
+                    if event.keysym in ('Left', 'a'):
+                        cobot.u[2][0] = 0.05
+                    if event.keysym in ('Right', 'd'):
+                        cobot.u[2][0] = -0.05
+            print("Releasing lock (makeGo)", cobot.ident)
         return go
     
     def makeStop(cobot):
-        def stop(event):
-            if event.keysym in ('Up', 'w', 'Down', 's'):
-                cobot.u[:2] = np.zeros((2, 1))
-            if event.keysym in ('Left', 'Right', 'a', 'd'):
-                cobot.u[2][0] = 0
-        return stop
-
-    def makeTurn(cobot, theta, go):
-        def turn(event):
-            cobot.u[2][0] = theta
-            go(event)
-        return turn
+        with cobot.lock:
+            def stop(event):
+                cobot.u = np.zeros((3,1))
+            return stop
 
     cobots = list(zip(*cobot_sim))[0]
 
     go = makeGo(cobots[1])
     win.bind("<KeyPress-w>", go)
     win.bind("<KeyPress-s>", go)
-    win.bind("<KeyPress-a>", makeTurn(cobots[1], .05, go))
-    win.bind("<KeyPress-d>", makeTurn(cobots[1], -.05, go))
+    win.bind("<KeyPress-a>", go)
+    win.bind("<KeyPress-d>", go)
     stop = makeStop(cobots[1])
     win.bind("<KeyRelease-w>", stop)
     win.bind("<KeyRelease-s>", stop)
@@ -573,8 +590,8 @@ def main():
     go = makeGo(cobots[0])
     win.bind("<KeyPress-Up>", go)
     win.bind("<KeyPress-Down>", go)
-    win.bind("<KeyPress-Left>", makeTurn(cobots[0], .05, go))
-    win.bind("<KeyPress-Right>", makeTurn(cobots[0], -.05, go))
+    win.bind("<KeyPress-Left>", go)
+    win.bind("<KeyPress-Right>", go)
     stop = makeStop(cobots[0])
     win.bind("<KeyRelease-Up>", stop)
     win.bind("<KeyRelease-Down>", stop)
