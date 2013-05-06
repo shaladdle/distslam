@@ -55,8 +55,10 @@ class FourRectangle:
                 if c.ident not in ret:
                     noise_x = np.random.normal(0, sqrt(noise_s))
                     noise_y = np.random.normal(0, sqrt(noise_s))
-                    loclmvec = np.matrix([[c.center.x + noise_x],
-                        [c.center.y + noise_y]]) - rmat
+                    loclmvec = np.matrix([[c.center.x + noise_x]
+                                         ,[c.center.y + noise_y]
+                                         ])
+                    loclmvec -= rmat
                     ret[c.ident] = loclmvec[0, 0], -loclmvec[1, 0]
             except ValueError:
                 pass

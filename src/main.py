@@ -56,8 +56,8 @@ class Cobot:
                 newP = np.identity(self.x.shape[0] + numadded) * meas_uncertainty
                 newP[:self.P.shape[0],:self.P.shape[1]] = self.P
 
-                relmat = np.matrix([[1, 0, 1]
-                                   ,[0, 1, 1]
+                relmat = np.matrix([[1, 0, 0]
+                                   ,[0, 1, 0]
                                    ])
 
                 lidx = self.lm_ids.index(lid)
@@ -372,11 +372,10 @@ class EstimateDrawer:
             r.setOutline(color)
             r.draw(self.win)
 
-            t_scale = (covx + covy) / 2
+            t_scale = (covx + covy) * 10
             b = g.Point(rx + t_scale * 1.2 * cos(-rt),
                     height - ry + t_scale * 1.2 * sin(-rt))
-            rl = g.Line(g.Point(rx + (t_scale * 0.8) * cos(-rt), 
-                height - ry + (t_scale * 0.8) * sin(-rt)), b)
+            rl = g.Line(g.Point(rx + (t_scale * 0.8) * cos(-rt), height - ry + (t_scale * 0.8) * sin(-rt)), b)
             rl.setOutline(color)
             rl.draw(self.win)
 
@@ -439,7 +438,10 @@ def getHzR(cobot, meas):
     H = np.zeros((2 * len(zids), 3 + 2 * len(cobot.lm_ids)))
 
     z = np.matrix([ [e] for e in z ])
-    R = np.identity(z.shape[0])
+
+    global noise_s
+    measv = [noise_s for _ in range(z.shape[0])]
+    R = np.diag(measv)
 
     for lid in zids:
         zidx = zids.index(lid) * 2
@@ -447,20 +449,12 @@ def getHzR(cobot, meas):
 
         H[zidx:zidx+2,0:2] = np.identity(2) * (-1)
         H[zidx:zidx+2,xidx:xidx+2] = np.identity(2)
-        
-        '''
+
         for oi, olid in enumerate(zids):
             if olid != lid:
                 ozidx = oi * 2
-                R[zidx : zidx + 2, ozidx : ozidx + 2] = 2* np.identity(2) 
-        '''
-    global noise_s
-    zsize = z.shape[0]
-    measv = [noise_s for _ in range(zsize)]
-    R = np.diag(measv)
+                R[zidx : zidx + 2, ozidx : ozidx + 2] = 2 * noise_s * np.identity(2) 
 
-
-    #return np.matrix(H), z, np.matrix(R)
     return np.matrix(H), z, np.matrix(R)
 
 def getG(x, u):
@@ -485,7 +479,7 @@ def main():
     width = 800
     height = 800
     noise_xy = .05
-    noise_t = .00001
+    noise_t = 0
     noise_s = 1
     win = g.GraphWin('SLAM Simulator', width, height)
 
