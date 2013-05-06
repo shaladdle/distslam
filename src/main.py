@@ -74,21 +74,36 @@ class Cobot:
         self.x = xtmp
 
 class BigCobot(Cobot):
-    def __init__(self):
+    def __init__(self, cobots):
+        xsize = len(3*cobots)
+        self.P = np.matrix(np.zeros((xsize,xsize)))
+        self.x = np.matrix(np.zeros((xsize,1)))
         self.cob_ids = []
+
+        for i, cobot in enumerate(cobots):
+            self.cob_ids.append(cobot.ident)
+            self.x[i*3:i*3+3,0] = cobot.x
+            self.P[i*3:i*3+3,i*3:i*3+3] = cobot.P[:3,:3]
+
+        self.lm_ids = []
 
     # do matrix stuff to add just one landmark
     def add_lm(self, cobot, lid):
         src_idx = cobot.lm_ids.index(lid)
 
         # append to the list of lm_ids
-        dst_idx = len(lm_ids)
-        lm_ids.append(lid)
+        dst_idx = len(self.lm_ids)
+        self.lm_ids.append(lid)
 
         # append to x
-        lx, ly = zip(cobot.x[3::2], cobot.x[4::2])[src_idx]
-        self.x.append(lx)
-        self.x.append(ly)
+        xtmp = [ e for [e] in np.array(cobot.x) ]
+        lmtmp = xtmp[src_idx*2:src_idx*2+2]
+        lx, ly = lmtmp[0], lmtmp[1]
+
+        bigxtmp = [ e for [e] in np.array(self.x) ]
+        bigxtmp.append(lx)
+        bigxtmp.append(ly)
+        self.x = np.matrix([ [e] for e in bigxtmp ])
 
         # expand P, copy over the old matrix, and then set the appropriate
         # regions to keep covariances
@@ -111,8 +126,8 @@ class BigCobot(Cobot):
         dst_end_col = dst_col + 2
 
         # copy over this region and its transpose
-        newP[dst_row:dst_end_row,dst_col:dst_end_col] = cobot.P[src_row:src_end_row,src_col:src_end:col]
-        newP[dst_col:dst_end_col,dst_row:dst_end_row] = cobot.P[src_col:src_end:col,src_row:src_end_row]
+        newP[dst_row:dst_end_row,dst_col:dst_end_col] = cobot.P[src_row:src_end_row,src_col:src_end_col]
+        newP[dst_col:dst_end_col,dst_row:dst_end_row] = cobot.P[src_col:src_end_col,src_row:src_end_row]
 
         # now we want to go through all the other landmarks that cobot knows
         # about, and copy the covariance of that other landmark with the
@@ -123,7 +138,7 @@ class BigCobot(Cobot):
                 oth_dst_idx = self.lm_ids.index(oth_lid)
 
                 src_row = 3 + oth_src_idx * 2
-                src_end_row = oth_src_idx + 2
+                src_end_row = src_row + 3
                 src_col = 3 + src_idx * 2
                 src_end_col = src_col + 2
 
@@ -133,8 +148,10 @@ class BigCobot(Cobot):
                 dst_col = 3 * len(self.cob_ids) + 2 * dst_idx
                 dst_end_col = dst_col + 2
 
-                newP[dst_row:dst_end_row,dst_col:dst_end_col] = cobot.P[src_row:src_end_row,src_col:src_end:col]
-                newP[dst_col:dst_end_col,dst_row:dst_end_row] = cobot.P[src_col:src_end:col,src_row:src_end_row]
+                newP[dst_row:dst_end_row,dst_col:dst_end_col] = cobot.P[src_row:src_end_row,src_col:src_end_col]
+                newP[dst_col:dst_end_col,dst_row:dst_end_row] = cobot.P[src_col:src_end_col,src_row:src_end_row]
+
+        self.P = newP
 
     # here we actually append to our matrix, and set the covariances in the
     # big covariance matrix based off of the little ones
@@ -144,10 +161,10 @@ class BigCobot(Cobot):
                 self.add_lm(cobot, lid)
 
     def getHzR(self, update_list, cobot):
-        zsize = len(update_list)
-        z = np.zeros(zsize)
-        R = np.zeros((zsize, zsize))
-        H = np.zeros((zsize, self.x.shape[0]))
+        zsize = 3 + 2*len(update_list)
+        z = np.matrix(np.zeros((zsize, 1)))
+        R = np.matrix(np.zeros((zsize, zsize)))
+        H = np.matrix(np.zeros((zsize, self.x.shape[0])))
 
         # have to do several things here, all part of removing parts of the
         # cobot's state that were added by add_new and properly bringing
@@ -164,12 +181,12 @@ class BigCobot(Cobot):
         # 2. Line up landmark pos in z with landmark pos in bigx
 
         # Steps 1 and 2
-        z[0:3,0] = cobot.x[0:3,0]
-        R[0:3,0:3] = cobot.P[0:3,0:3]
+        z[:3,0] = cobot.x[:3,0]
+        R[:3,:3] = cobot.P[:3,:3]
 
         # Set part of H corresponding to this robot's pose (step 1 for H)
         big_cob_xidx = 3 * self.cob_ids.index(cobot.ident)
-        H[big_cob_xidx:big_cob_xidx+3,big_cob_xidx:big_cob_xidx+3] = np.identity(3)
+        H[0:3,big_cob_xidx:big_cob_xidx+3] = np.identity(3)
 
         covered = set()
         for uidx, lm_id in enumerate(update_list):
@@ -186,15 +203,15 @@ class BigCobot(Cobot):
 
             # Step 6
             for olmidx, olm_id in enumerate(cobot.lm_ids):
-                if olm_id != lm_id and olm_id in update_list and not covered((olm_id, lm_id)):
+                if olm_id != lm_id and olm_id in update_list and (olm_id, lm_id) not in covered:
                     covered.add((olm_id, lm_id))
                     covered.add((lm_id, olm_id))
 
                     ozidx = 3 + update_list.index(olm_id) * 2
                     oxidx = 3 + olmidx * 2
 
-                    R[ozidx:ozidx+2,zidx:zidx+2] = P[oxidx:oxidx+2,xidx:xidx+2]
-                    R[zidx:zidx+2,ozidx:ozidx+2] = P[xidx:xidx+2,oxidx:oxidx+2]
+                    R[ozidx:ozidx+2,zidx:zidx+2] = cobot.P[oxidx:oxidx+2,xidx:xidx+2]
+                    R[zidx:zidx+2,ozidx:ozidx+2] = cobot.P[xidx:xidx+2,oxidx:oxidx+2]
 
             # set part of H corresponding to this landmark's position (step 2 for H)
             big_lm_xidx = 3 * len(self.cob_ids)
@@ -211,6 +228,9 @@ class BigCobot(Cobot):
             for lid in cobot.lm_ids:
                 if lid in self.lm_ids:
                     update_list.append(lid)
+
+            if len(update_list) == 0:
+                continue
 
             # Get the state and covariance of the cobot with only the
             # landmarks we have seen before. Name them z and R since
@@ -255,53 +275,6 @@ def strip_lm(lid, cobot):
     newP[:cutstart,cutstart+2:] = cobot.P[:cutstart,cutstart+2:]
     newP[cutstart+2:,cutstart+2:] = cobot.P[cutstart+2:,cutstart+2:]
     cobot.P = np.matrix(newP)
-
-def combine_estimates(cobots):
-    if len(cobots) == 0:
-        return None
-
-    bigcobot = BigCobot()
-
-    # find out how many landmarks there are
-    bigcobot.lm_ids = []
-    for cobot in cobots:
-        bigcobot.lm_ids += cobot.lm_ids
-    bigcobot.lm_ids = sorted(set(bigcobot.lm_ids))
-
-    bigcobot.cob_ids = [ cobot.ident for cobot in cobots ]
-
-    numlms = len(bigcobot.lm_ids)
-
-    if numlms == 0:
-        return None
-
-    xsize = 3 * len(bigcobot.cob_ids) + 2 * numlms
-    bigcobot.x = np.matrix(np.zeros((xsize, 1)))
-    bigcobot.P = np.matrix(np.zeros((xsize, xsize)))
-    for cobot in cobots:
-        # 1. Update this robot's position right from the cobot's state estimate
-        cob_idx = bigcobot.cob_ids.index(cobot.ident)
-        bigcobot.x[3 * cob_idx: 3 * cob_idx + 3, 0] = cobot.x[0:3,0]
-
-        # 2. Update the covariance of the cobot's state from the right spot 
-        #    in its corresponding covariance matrix
-        bigcobot.P[3 * cob_idx: 3 * cob_idx + 3,
-                   3 * cob_idx: 3 * cob_idx + 3] = cobot.P[0:3,0:3]
-
-        for lid in cobot.lm_ids:
-            lit_idx = cobot.lm_ids.index(lid)
-            big_idx = bigcobot.lm_ids.index(lid)
-
-            if lid not in bigcobot.lm_ids:
-                bigcobot.lm_ids.append(lid)
-
-                lx, ly = strip_lm(lid, cobot)
-                bigcobot.x.append(lx)
-                bigcobot.x.append(ly)
-            else:
-                bigcobot.x[2*big_idx:2*big_idx+2,0] = cobot.x[2*lit_idx:2*lit_idx+2,0]
-
-    return bigcobot
 
 class EstimateDrawer:
     def __init__(self, win):
@@ -396,11 +369,17 @@ def kalman_predict(F, G, Q, P, x, u):
     return (x_p, P_p)
 
 def kalman_update(H, R, P, x, z):
-    y = z - H * x
-    S = H * P * H.transpose() + R
-    K = P * H.transpose() * np.linalg.inv(S)
-    x = x + K * y
-    P = (np.identity(K.shape[0]) - K * H) * P
+    try:
+        y = z - H * x
+        S = H * P * H.transpose() + R
+        K = P * H.transpose() * np.linalg.inv(S)
+        x = x + K * y
+        P = (np.identity(K.shape[0]) - K * H) * P
+    except ValueError as e:
+        print(e)
+        print(H)
+        print(z)
+        print(P)
 
     return (x, P)
 
@@ -583,12 +562,19 @@ def main():
     win.pack()
     win.focus_set()
 
-    #bigcobot = BigCobot()
-    #ed2 has a method draw_big which isn't working..
+    bigcobot = BigCobot(cobots)
     ed2 = EstimateDrawer(win)
     iters = 0
     while True:
         timestep()
+
+        bigcobot.merge_estimates(cobots)
+
+        print(bigcobot.x)
+        print(cobots[0].x)
+        print(cobots[1].x)
+
+        ed2.draw_big(bigcobot)
 
         sleep(0.01)
 
