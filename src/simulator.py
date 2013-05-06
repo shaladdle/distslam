@@ -34,7 +34,7 @@ class FourRectangle:
                     g.Point(self.sight_range * cos(theta) + self.eye.x,
                         self.sight_range * sin(theta) + self.eye.y)))
 
-    def draw(self, win, landmarks, rmat):
+    def draw(self, win, landmarks, rmat, noise_s):
         ret = {}
         for l in self.lines:
             l.draw(win)
@@ -53,7 +53,10 @@ class FourRectangle:
                 min_t, c = min(((t, c) for t, c in ts if 0 <= t <= 1), key=lambda tc:tc[0])
                 l = g.Line(l.p1, g.Point(l.p1.x + min_t * dx, l.p1.y + min_t * dy))
                 if c.ident not in ret:
-                    loclmvec = np.matrix([[c.center.x], [c.center.y]]) - rmat
+                    noise_x = np.random.normal(0, sqrt(noise_s))
+                    noise_y = np.random.normal(0, sqrt(noise_s))
+                    loclmvec = np.matrix([[c.center.x + noise_x],
+                        [c.center.y + noise_y]]) - rmat
                     ret[c.ident] = loclmvec[0, 0], -loclmvec[1, 0]
             except ValueError:
                 pass
@@ -111,18 +114,16 @@ class Simulator:
     def set_landmarks(self, landmarks):
         self.landmarks = landmarks
 
-    def do_motors(self, u, reverse):
+    def do_motors(self, u, reverse, noise_xy, noise_t, noise_s):
         u = np.array(u)
-        noise = np.random.randn(3, 1)
-        noise[2][0] /= 10
-        if (u[0][0] == u[1][0] == 0):
-            noise[0][0] = 0
-            noise[1][0] = 0
-        if (u[2][0] == 0):
-            noise[2][0] = 0
+        noise = []
+        for [delta], n in zip(u[:3], (noise_xy, noise_xy, noise_t)):
+            if delta == 0 or 0 == n:
+                noise.append(0)
+            else:
+                noise.append(np.random.normal(0, sqrt(abs(delta * n))))
 
-        u += self.motion_noise * noise
-
+        u += np.matrix(noise).reshape((3, 1))
         # math coordinates
         disp = np.linalg.norm(u[:2])
         if reverse:
@@ -164,7 +165,7 @@ class Simulator:
         rmat = np.matrix([[self.robot_pos.x]
                          ,[self.robot_pos.y]
                          ])
-        ret = self.robotrect.draw(self.win, self.landmarks, rmat)
+        ret = self.robotrect.draw(self.win, self.landmarks, rmat, noise_s)
 
         # update the robot position
         self.robot_pos = g.Point(math_x, self.height - math_y)

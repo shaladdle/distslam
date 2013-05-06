@@ -137,8 +137,10 @@ class BigCobot(Cobot):
                 dst_col = 3 * len(self.cob_ids) + 2 * dst_idx
                 dst_end_col = dst_col + 2
 
-                newP[dst_row:dst_end_row,dst_col:dst_end_col] = cobot.P[src_row:src_end_row,src_col:src_end:col]
-                newP[dst_col:dst_end_col,dst_row:dst_end_row] = cobot.P[src_col:src_end:col,src_row:src_end_row]
+                newP[dst_row:dst_end_row,dst_col:dst_end_col] = \
+                        cobot.P[src_row:src_end_row,src_col:src_end:col]
+                newP[dst_col:dst_end_col,dst_row:dst_end_row] = \
+                        cobot.P[src_col:src_end:col,src_row:src_end_row]
 
     # here we actually append to our matrix, and set the covariances in the
     # big covariance matrix based off of the little ones
@@ -402,10 +404,12 @@ def kalman_predict(F, G, Q, P, x, u):
 def kalman_update(H, R, P, x, z):
     y = z - H * x
     S = H * P * H.transpose() + R
+    if not S.any():
+        return x, P
     K = P * H.transpose() * np.linalg.inv(S)
     x = x + K * y
     P = (np.identity(K.shape[0]) - K * H) * P
-    return (x, P)
+    return x, P
 
 def getQ(x, u):
     noopu = np.matrix([[0]
@@ -417,7 +421,11 @@ def getQ(x, u):
     if (noopu == u).all():
         return ret
 
-    ret[0:3,0:3] = np.identity(3)
+    global noise_xy, noise_t
+    variances = (noise_xy, noise_xy, noise_t)
+    variances = [v * delta for v, [delta] in zip(variances, u[:3])]
+
+    ret[0:3,0:3] = np.diag(variances)
 
     return np.matrix(ret)
 
@@ -440,13 +448,20 @@ def getHzR(cobot, meas):
         H[zidx:zidx+2,0:2] = np.identity(2) * (-1)
         H[zidx:zidx+2,xidx:xidx+2] = np.identity(2)
         
+        '''
         for oi, olid in enumerate(zids):
             if olid != lid:
                 ozidx = oi * 2
                 R[zidx : zidx + 2, ozidx : ozidx + 2] = 2* np.identity(2) 
+        '''
+    global noise_s
+    zsize = z.shape[0]
+    measv = [noise_s for _ in range(zsize)]
+    R = np.diag(measv)
+
 
     #return np.matrix(H), z, np.matrix(R)
-    return np.matrix(H), z, np.shape(np.zeros((z.shape[0],z.shape[0])))
+    return np.matrix(H), z, np.matrix(R)
 
 def getG(x, u):
     ret = [[1,0,0]
@@ -462,11 +477,16 @@ def getF(x):
     return np.matrix(np.identity(x.shape[0]))
 
 def main():
-    global width, height, lm, meas_uncertainty, nextident
+    global width, height, lm, \
+            meas_uncertainty, nextident, \
+            noise_xy, noise_t, noise_s
     nextident = 0
     meas_uncertainty = 10
     width = 800
     height = 800
+    noise_xy = .05
+    noise_t = .00001
+    noise_s = 1
     win = g.GraphWin('SLAM Simulator', width, height)
 
     lm_points = []
@@ -506,7 +526,9 @@ def main():
                 local_x = cobot.x.copy()
                 local_reverse = cobot.reverse
 
-            meas, simx = sim.do_motors(local_u, cobot.reverse)
+            global noise_xy, noise_t, noise_s
+            meas, simx = sim.do_motors(local_u, cobot.reverse,
+                    noise_xy, noise_t, noise_s)
             # add previously unseen landmarks to the state
             try:
                 with cobot.lock:
@@ -526,11 +548,8 @@ def main():
             F = getF(local_x)
             G = getG(local_x, local_u)
             local_x, local_P = kalman_predict(F, G, Q, local_P, local_x, local_u)
-
-            if (local_x[:3] != simx).all():
-                exit()
-
-            if meas and False:
+            
+            if meas:
                 try:
                     # compute H, z, and R
                     H, z, R = getHzR(cobot, meas)
@@ -561,8 +580,8 @@ def main():
             # set velocities
             with cobot.lock:
                 if event.keysym in ('Up', 'w', 'Down', 's'):
-                    cobot.u[0][0] = 2 * cos(cobot.x[2][0])
-                    cobot.u[1][0] = 2 * sin(cobot.x[2][0])
+                    cobot.u[0][0] = 5 * cos(cobot.x[2][0])
+                    cobot.u[1][0] = 5 * sin(cobot.x[2][0])
                     cobot.u[2][0] = 0
                     if event.keysym in ('Up', 'w'):
                         cobot.reverse = False
@@ -577,9 +596,9 @@ def main():
                     cobot.u[0][0] = 0
                     cobot.u[1][0] = 0
                     if event.keysym in ('Left', 'a'):
-                        cobot.u[2][0] = 0.05
+                        cobot.u[2][0] = 0.15
                     elif event.keysym in ('Right', 'd'):
-                        cobot.u[2][0] = -0.05
+                        cobot.u[2][0] = -0.15
                     else:
                         raise BadEventException('event {} not recognized'.format(event))
         return go
