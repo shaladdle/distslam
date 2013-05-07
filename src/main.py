@@ -206,7 +206,7 @@ class EstimateDrawer:
             rl.draw(self.win)
 
             state_x, state_P = [], []
-            state_x.append(r)
+            #state_x.append(r)
             state_x.append(rl)
             ellipse_data = zip(x[3::2], x[4::2], p_diags[3::2], p_diags[4::2])
 
@@ -311,7 +311,7 @@ def main():
 
     waypoints = []
     lm_points = []
-    user_control = True
+    user_control = False
     if user_control:
         for i in range(30):
             lx = random.randrange(50, width-50)
@@ -320,7 +320,7 @@ def main():
     else:
         xtmp = 50
         while xtmp < width - 50:
-            if xtmp < 400 or xtmp > 500:
+            if xtmp < 250 or xtmp > 500:
                 lm_points.append(g.Point(xtmp, 200))
             xtmp += 25
 
