@@ -142,12 +142,6 @@ $R$ is the uncertainty or error in sensing.
 $Q$ is the uncertainty in motion.
 
 
-\section{Previous Work}
-
-XXXXXXXXXXXXXXXXXXXXXXXXXX WHAT
-
-
-
 \section{Model}
 
 The problem that our model addresses is that of a robot entering an unknown area but searching for known landmarks within it.  However, while it is able to recognize the landmarks upon sensing them, it still does not know what their absolute positions are \- only the positions relative to itself and what it has already mapped.
@@ -416,15 +410,15 @@ x
 \end{bmatrix}                 
 \begin{bmatrix}
     [ r_1 ] \\
-    \vdots \\
-    [ r_k ] \\
+    [ r_2 ] \\
+    \\
     [ l_1 ] \\
     \vdots \\
     [ l_m ] \\
 \end{bmatrix}
 $$
 
-so that the Kalman filter updates any landmark measurements and related robot poses.
+where there are only 2 robots, $[1]$ indicates an identity matrix of size $2\times 2$ and $[0]$ indicates a $2\times 2$ 0 matrix. This model design ensures that the Kalman filter updates any landmark measurements and related robot poses.
 
 \section{Results}
 
@@ -432,7 +426,13 @@ so that the Kalman filter updates any landmark measurements and related robot po
 
 Individual robots are able to perform SLAM reliably.  When sensing a new landmark, a robot adds the landmark to its list of those encountered with an initial estimation of its location, relative to its own.  This estimate improves as the robot encounters other nearby landmarks, and continues to improve if the robot returns to perceive the landmark again.
 
-The robot's estimation of its own position is partly a function of the uncertainty encoded into the odometry.  With a reasonable level of odometry error, the robot gradually loses track of its position over time if it travels a distance without sensing any landmarks, which is the expected result.
+The robot's estimation of its own position is partly a function of the uncertainty encoded into the odometry.  With a reasonable level of odometry error, the robot gradually loses track of its position over time if it travels a distance without sensing any landmarks, which is the expected result. This effect is shown in Figure \ref{fig:waypoints}, with the robot having low uncertainty (signified by the thickness of the trail) when it is within range of landmarks, and high uncertainty when it cannot see landmarks. When the robot sees a new group of landmarks again, they appropriately off due to the cumulative error of the robot.
+
+\begin{figure}[h!]
+\includegraphics[width=\textwidth]{waypoints.png}
+\caption{Cumulative error increases uncertainty unless landmarks can be measured.}
+\label{fig:waypoints}
+\end{figure}
 
 \begin{figure}[h!]
 \includegraphics[width=\textwidth]{update1.png}
@@ -469,7 +469,6 @@ In addition to fine-tuning the distributed aspect of the project, we would like 
 
     \bibitem{cunningham2010}
         A. Cunningham, M. Paluri, and F. Dellaert, ``DDF-SAM: Fully Distributed SLAM using Constrained Factor Graphs'', \emph{International Conference on Intelligent Robots and Systems (IROS)}, 2010.
-
 \end{thebibliography}
 
 \end{document}
