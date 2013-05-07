@@ -886,10 +886,10 @@
   \global\@acmtaccessfalse
   \global\@acmtocefalse
   \global\@acmteacfalse
-  \def\@journalName{ACM Transactions on Embedded Computing Systems}
-  \def\@journalNameShort{ACM Trans. Embedd. Comput. Syst.}
+  \def\@journalName{Graduate AI CMU 15-780}
+  \def\@journalNameShort{Graduate AI CMU 15-780}
   \def\@journalCode{tecs}
-  \def\@permissionCodeOne{1539-9087} 
+  \def\@permissionCodeOne{} 
 }
 
 \DeclareOption{acmtalip}{
@@ -2214,8 +2214,7 @@
 \acmPages{\@totalpg\@lastpg\global\advance\@totalpg-\@firstpg\global\advance\@totalpg\@ne\ifnum\the\@totalpg<\z@0\else\the\@totalpg\fi\ pages}
 
 % Reference Format
-\gdef\formatline{{\em{\@journalNameShort\ }}\@acmVolume, \@acmNumber, Article~\@acmArticle\ (\monthWord{\@acmMonth}\ \@acmYear), \@acmPages.\\ % Need Journal Name in italics - in 'ACM Reference Format' before 1. INTRODUCTION - Gerry - March 2012
-{\tt DOI:}http://dx.doi.org/10.1145/\@doi} % Gerry March 2012 - on first page in 'ACM Reference Format'
+\gdef\formatline{{\em{\@journalNameShort\ }}} % Gerry March 2012 - on first page in 'ACM Reference Format'
 \gdef\copyrightline{\copyright\ \@acmYear\ \@cpyright\ \$\@acmPrice}
 \gdef\doiline{{\tt DOI:}http://dx.doi.org/10.1145/\@doi} % Gerry - March 2012 - beneath copyright line
 
@@ -2262,10 +2261,10 @@
  \def\pubphrase{Publication date}
 \fi\fi\fi\fi
 
-\runningfoot{\@journalName, Vol.~\@acmVolume, No.~\@acmNumber, Article~\@acmArticle,\ \pubphrase:\ \monthWord{\@acmMonth}\ \@acmYear.}
+\runningfoot{\@journalName}
 
 \def\@firstfoot{}
-\gdef\firstfoot{\@journalName, Vol.~\@acmVolume,\ No.~\@acmNumber,\ Article\ \@acmArticle,\ \pubphrase:\ \monthWord{\@acmMonth}\ \@acmYear.}
+\gdef\firstfoot{\@journalName}
 
 \def\ps@titlepage{%
     \let\@mkboth\@gobbletwo
