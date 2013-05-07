@@ -170,36 +170,6 @@ class EstimateDrawer:
         self.points = []
         self.states = []
 
-    def draw_big(self, bigcobot):
-        global height
-        for x, P in self.states:
-            for item in x:
-                item.undraw()
-
-            for item in P:
-                item.undraw()
-
-        states = [ (bigcobot.x, []) ]
-        self.states = []
-
-        colors = [ "purple" ]
-        lm_scale = 5
-        r_scale = 5
-        for (x, P), color in zip(states, colors):
-            x = np.array(x)
-            P = np.array(P)
-            p_diags = np.diag(P)
-
-            state_x, state_P = [], []
-            numcobs = len(bigcobot.cob_ids)
-            for [px], [py], in zip(x[3*numcobs+3::2], x[3*numcobs+4::2]):
-                c = g.Circle(g.Point(px, height - py), 20)
-                c.setOutline(color)
-                c.draw(self.win)
-                state_x.append(c)
-
-            self.states.append((state_x, state_P))
-
     def draw(self, states):
         global height
         for x, P in self.states:
@@ -219,7 +189,7 @@ class EstimateDrawer:
             P = np.array(P)
             p_diags = np.diag(P)
 
-            covx, covy = (p * r_scale for p in p_diags[:2])
+            covx, covy = (2 * sqrt(p) for p in p_diags[:2])
             [rx], [ry], rt = (p for p in x[:3])
             rpoint1 = g.Point(rx - covx, height - (ry - covy))
             rpoint2 = g.Point(rx + covx, height - (ry + covy))
@@ -236,12 +206,12 @@ class EstimateDrawer:
             rl.draw(self.win)
 
             state_x, state_P = [], []
-            state_x.append(r)
+            #state_x.append(r)
             state_x.append(rl)
             ellipse_data = zip(x[3::2], x[4::2], p_diags[3::2], p_diags[4::2])
 
             for [px], [py], *cov in ellipse_data:
-                covx, covy = (p * lm_scale for p in cov)
+                covx, covy = (2 * sqrt(p) for p in cov)
                 p1 = Vector2(px - covx, height - (py - covy))
                 p2 = Vector2(px + covx, height - (py + covy))
                 c = g.Oval(g.Point(p1[0], p1[1]), g.Point(p2[0], p2[1]))
@@ -350,8 +320,9 @@ def main():
     else:
         xtmp = 50
         while xtmp < width - 50:
-            lm_points.append(g.Point(xtmp, 200))
-            xtmp+= 25
+            if xtmp < 400 or xtmp > 500:
+                lm_points.append(g.Point(xtmp, 200))
+            xtmp += 25
 
     lm = []
     for i, lmp in enumerate(lm_points):
