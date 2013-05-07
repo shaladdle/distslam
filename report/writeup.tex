@@ -219,13 +219,53 @@ P =
 \end{bmatrix}
 $$
 
-The diagonals of this matrix are just the variances of each variable in the state vector. The off-diagonal elements are the covariances between different variables in the vector. We choose our $Q$ and $R$ matrices, which are motion covariance and measurement covariance, respectively, to indicate that there is noise between 
+The diagonals of this matrix are just the variances of each variable in the state vector. The off-diagonal elements are the covariances between different variables in the vector. There are few elements of the matrix that are used to express relationships between variables in the state. Whenever a landmark is seen for the first time, it is appended to the state estimate, and the variance of that landmark's $x$ and $y$ positions are inserted at the bottom right of the covariance matrix. We also add some covariance between the robot's pose and the landmark position, where appropriate. For example, if the robot observed landmark $1$, and it had not seen any landmarks before, the state would become
+
+$$
+x
+=
+\begin{bmatrix}
+    x_r \\
+    y_r \\
+    \theta_r \\
+\end{bmatrix}
+\Rightarrow
+\begin{bmatrix}
+    x_r \\
+    y_r \\
+    \theta_r \\
+    x_1 \\
+    y_1 \\
+\end{bmatrix}
+$$
+
+and the covariance matrix would become
+
+$$
+P
+=
+\begin{bmatrix}
+    var(x_r)     & 0            & 0               \\
+    0            & var(y_r)     & 0               \\
+    0            & 0            & var(\theta)     \\
+\end{bmatrix}
+\Rightarrow
+\begin{bmatrix}
+    var(x_r)     & 0            & 0               & cov(x_r,x_1) & 0            \\
+    0            & var(y_r)     & 0               & 0            & cov(y_r,y_1) \\
+    0            & 0            & var(\theta)     & 0            & 0            \\
+    cov(x_r,x_1) & 0            & 0               & var(x_1)     & 0            \\
+    0            & cov(y_r,y_1) & 0               & 0            & var(y_1)     \\
+\end{bmatrix}
+$$
+
+Since the components of the robot and landmark positions are related. That is, if the robot has $x$ position $x_r$ at time $t$ and the landmark has $x$ position $x_1$, then the two quantities are related because the robot was at a specific distane from landmark 1 at time $t$.
 
 \subsection{Motion Model}
 
 We also have the motion command, where $u=[\Delta x_r, \Delta y_r, \Delta \theta_r]^T$, or the change robot pose from timestep $t$ to timestep $t+1$.
 
-For our transition model, we set $F$ to be the identity matrix of the appropriate size. Thus our transition model becomes $x' = x + Gu$. An example of our transition model for one timestep follows. In this example the robot has already observed landmark 1, and has an estimate of that landmark's position in its state: $x_t=[3, 4, \pi, x_1, y_1]^T$, and $u_t = [1,1,0]^T$. In this case the transition model equation will look like this:
+For our transition model, we set $F$ to be the identity matrix of the appropriate size. Thus our transition model becomes $x_{t+1} = x_t + G_tu_t + \nu_t$. An example of our transition model for one timestep follows. In this example the robot has already observed landmark 1, and has an estimate of that landmark's position in its state: $x_t=[3, 4, \pi, x_1, y_1]^T$, and $u_t = [1,1,0]^T$. In this case the transition model equation will look like this:
 
 $$
 \begin{bmatrix}
@@ -260,7 +300,20 @@ $$
 
 The purpose of $G$ in this model is simply to convert $u_t$ into an $n\times 1$ matrix, where $n$ is the size of $x$, so the change in pose is added to the proper elements in $x$.
 
-\subsection{Sensor Model}
+The last part of the motion model is the system noise covariance, $Q$. We define $Q$ as follows:
+
+$$
+Q = 
+\begin{bmatrix}
+    cov(\Delta x_r) & 0               & 0 \\
+    0               & cov(\Delta y_r) & 0 \\
+    0               & 0               & cov(\Delta \theta_r) \\
+\end{bmatrix}
+$$
+
+This takes into account the fact that our robot may not move exactly how it expects to move when it executes a motor command. The variances on the diagonal are set to be a 5\% of the attempted motion.
+
+\subsection{Measurement Model}
 
 Since our measurements are relative position between the motors and the landmarks, the $H$ matrix in the measurement model must express that. The relative sensor measurement is
 
@@ -305,6 +358,34 @@ $$
 $$
 
 This $H$ matrix properly computes the relative measurement from the state's absolute positions.
+
+The final piece of the measurement model is the covariance matrix of the measurement noise $w$, $R$. We set $R$ such that the variances of the relative landmark measurements are equal to our approximate sensor error, which is about 5\% of the max sensor range. So the for a measurement
+
+$$
+z
+=
+\begin{bmatrix}
+    x_1 \\
+    y_1 \\
+    x_2 \\
+    y_2 \\
+\end{bmatrix}
+$$
+
+we would have the covariance matrix
+
+$$
+R
+=
+\begin{bmatrix}
+    var(x_1)     & 0            & cov(x_1,x_2) & 0            \\
+    0            & var(y_1)     & 0            & cov(y_1,y_2) \\
+    cov(x_1,x_2) & 0            & var(x_2)     & 0            \\
+    0            & cov(y_1,y_2) & 0            & var(y_2)     \\
+\end{bmatrix}
+$$
+
+to express that landmark $x$ and $y$ values are related, just as robot $x$ and $y$ values are related to landmarks.
 
 \subsection{Distributed SLAM}
 
