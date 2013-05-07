@@ -21,5 +21,6 @@ def dot(a, b):
 def interior_angle(a, b):
    return acos(dot(a, b) / (a.length() * b.length())) 
 
-
+def dist(a, b):
+    return sqrt((a.x - b.x)**2 + (a.y - b.y)**2)
 

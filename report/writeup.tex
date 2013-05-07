@@ -36,7 +36,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \title{
-    CMU 15\-780 Graduate Artificial Intelligence
+    Carnegie Mellon University \\
+    15-780 Graduate Artificial Intelligence \\
     Final Project: Distributed SLAM
 }
 
@@ -74,13 +75,15 @@ In this project, we implement a simple system for distributed SLAM using multipl
 
 The idea behind SLAM is to use a probabilistic method to solve mapping and localization as a single problem.  Mapping and localization are typically both attempted under conditions of sensor noise and uncertain state estimation.  SLAM techniques take advantage of the idea that feedback from both processes can reinforce each other at each step of an iterative state estimation; in fact, SLAM's model states that it is impossible in practice to separate the two.
 
-Since, in theory, accurate localization can not be achieved without an accurate map on which to localize, and an undistorted map cannot be created without an accurate statement of present localization, the SLAM problem is iterative in practice.  From some starting conditions, better estimates of both are converged towards over time and subsequent observations.
+Since, in theory, accurate localization can not be achieved without an accurate map on which to localize, and an undistorted map cannot be created without an accurate statement of present localization, the SLAM problem is iterative in practice.  Starting conditions converge towards better estimates of both over time and subsequent observations.
 
-SLAM is an active research topic with several current approaches, including various varieties of Kalman filtering (linear, extended, unscented), particle filtering, smoothing, and others.  The implementation we chose is based on a linear Kalman filter.
+SLAM is an active research topic with a number of current approaches, including several varieties of Kalman filtering (linear, extended, unscented), particle filtering, smoothing, and others.  The implementation we chose is based on a linear Kalman filter.
 
 \subsection{Kalman Filter}
 
-The Kalman filter is a method of updating prior predictions based on current observations.  At a high level it involves a transition model describing the relationship between a state at two consecutive timesteps $x_t$ and $x_{t+1}$, and a measurement model describing the relationship between what is perceived and the system state at a given timestep.
+The Kalman filter is a Bayesian method of updating prior predictions based on current observations.  The assumptions underlying the linear Kalman filter are that the underlying system has fundamentally linear dynamics and that errors are normally distributed.
+
+At a high level the Kalman filter involves a transition model describing the relationship between a state at two consecutive timesteps $x_t$ and $x_{t+1}$, and a measurement model describing the relationship between what is perceived and the system state at a given timestep.
 
 The transition model is given by:
 \begin{align*}
@@ -97,16 +100,16 @@ The measurement model is given by:
 
 where $w_k$ is gaussian noise with covariance matrix $R$.
 
-The Kalman filter involves two steps: Predict and Update. \\
-
-Predict:
+The Kalman filter involves two steps: predict and update. In the prediction step, given by:
 
 \begin{align*}
     x_t' &= F x_t + G u_t \\
     P_t' &= F P F^T + Q
 \end{align*}
 
-Update:
+the filter produces estimates of current state variables with associated uncertainties.
+
+In the update step, given by:
 
 \begin{align*}
     y &= z_t - H_t x_t' \\
@@ -116,15 +119,27 @@ Update:
     P_{t+1} &= (I - K H_t) P_t'
 \end{align*}
 
+the algorithm averages the current observations against prior predictions, giving more weight to estimates with higher certainty.
+
 The matrix definitions are as follows:
 
 \begin{align*}
+    x:& \text{ System state}\\
     H:& \text{ Motion model}\\
     P:& \text{ Covariance matrix}\\
     R:& \text{ Measurement uncertainty}\\
-    x:& \text{ System state}\\
     Q:& \text{ Motion covariance / uncertainty}
 \end{align*}
+
+$x$, the system state, describes the present estimates of the robot's location and any landmarks that it has seen to date.
+
+$H$ describes the assumption of the perception model that maps the true space into the observation space.
+
+$P$ is the covariance of the uncertainty in state estimation parameters.
+
+$R$ is the uncertainty or error in sensing.
+
+$Q$ is the uncertainty in motion.
 
 \section{Model}
 
@@ -241,6 +256,7 @@ The purpose of $G$ in this model is simply to convert $u_t$ into an $n\times 1$ 
 \subsection{Sensor Model}
 
 Since our measurements are relative position between the motors and the landmarks, the $H$ matrix in the measurement model must express that. The relative sensor measurement is
+
 $$
 z = 
 \begin{bmatrix}
