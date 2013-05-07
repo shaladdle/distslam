@@ -141,6 +141,13 @@ $R$ is the uncertainty or error in sensing.
 
 $Q$ is the uncertainty in motion.
 
+
+\section{Previous Work}
+
+XXXXXXXXXXXXXXXXXXXXXXXXXX WHAT
+
+
+
 \section{Model}
 
 The problem that our model addresses is that of a robot entering an unknown area but searching for known landmarks within it.  However, while it is able to recognize the landmarks upon sensing them, it still does not know what their absolute positions are \- only the positions relative to itself and what it has already mapped.
@@ -305,7 +312,7 @@ The most basic approach to distributed SLAM is to assume that communication is a
 
 Our approach is to use another Kalman filter, where the state transition model takes into account the new poses of the robots, and the measurement equation takes into account
 
-XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXX ACCIDENTALLY A WORD
 
 with just an update step and no prediction.  Each robot's state vector is treated as a measurement and the covariance as the measurement noise. The resulting estimates are fed back into each robot at each iteration.
 
@@ -323,7 +330,7 @@ XXXXXXXXXXXXXXXXXXXXXXXXXXX PUT SOME NUMBERS HERE OR SOMETHING
 
 \subsection{Multiple Robots}
 
-Multiple robots working in the same area individually are able function without problems, but joining their results into a distributed framework has proven to be less stable so far.
+Multiple robots working in the same area individually are able function without problems, but joining their results into a distributed framework has proven to be less successful so far.
 
 
 
