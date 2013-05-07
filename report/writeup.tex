@@ -60,25 +60,21 @@ We attempt a simple method of combining the results of multiple robots conductin
 
 \section{Introduction}
 
-For a robot to be able to use a search technique like A* to find a path through an environment, or use some kind of planning to execute that path, the robot must first have a map of its environment. Some applications of robotics, such as search and rescue or indoor fire fighting do not have the luxury of having an accurate map beforehand. Simultaneous Localization and Mapping (SLAM) techniques, which build maps based only on sensor measurements, allow autonomous robots in these applications to succeed. Some applications, such as search and rescue, would benefit from using multiple robots to cover a wide area quickly. In this project, we implemented a simple system for distributed SLAM using multiple robots in simulation.  These robots perform SLAM individually and share their data to create a larger combined map of the area.
+Localization and mapping are fundamental problems in the area of mobile robotics.  For a robot to accomplish a task within an environment, it must have knowledge of the layout of the environment, in the form of a map showing where its goals and obstacles lie.  However, many robotics scenarios involve a robot entering an unknown environment without a map.  Before executing search and planning techniques, it must therefore create a map of the environment in order to find its way through and hope to accomplish any goals.  
 
-\section{Model}
+However, even when the robot has a map, it will not be useful if it is unable to localize itself on that map.  A robot's internal state estimation is thus equally crucial to task completion.
 
-The problem that our model addresses is that of a robot entering an unknown area but searching for known landmarks within it.  However, while it is able to recognize the landmarks upon sensing them, it still does not know what their absolute positions are \- only the positions relative to itself and what it has already mapped.
+Many real-world applications of robotics, such as search and rescue or indoor fire fighting, do not have the luxury of having an accurate map beforehand. Simultaneous Localization and Mapping (SLAM) techniques, which build maps based only on sensor measurements, allow autonomous robots in these applications to succeed. Further, some applications would benefit from using multiple robots to cover a wide area quickly.
 
-For analogy, consider a person walking into the Louvre museum without a map.  He does not know much about art and doesn't know where any paintings are within the museum.  However, he knows what the famous ones look like and when he sees the Mona Lisa he recognizes it immediately. If he has been tracing his steps from the beginning, can give a position for the painting relative to the museum's entry point.  If he later comes across the Venus de Milo, he can relate its position to both the Mona Lisa and his entry point.  (Of course, if he daydreamed while walking to the Mona Lisa and wasn't sure about how many steps he actually took, all of the relative positions will be slightly off.)
-
-This is similar to the model we are exploring here.  It could be applicable to a variety of robotic exploration scenarios; for instance, search-and-rescue operations.
-
-In order to focus on the main problem, we abstracted away certain details in our simulation.  In particular, we assume that when a robot senses a known landmark, it can identify it immediately and without error.  Normally there would be some uncertainty involved in, say, a vision sensor identifying visual features, but for simplicity we did not consider this in our model.
-
-In addition, our motion and sensor models are simplified as described in the next section.
+In this project, we implement a simple system for distributed SLAM using multiple robots in simulation.  These robots perform SLAM individually and share their data to create a larger combined map of the area.
 
 \section{Background}
 
 \subsection{SLAM}
 
-The idea behind SLAM is to use a probabilistic method to solve mapping and localization as a single problem. 
+The idea behind SLAM is to use a probabilistic method to solve mapping and localization as a single problem.  Mapping and localization are typically both attempted under conditions of sensor noise and uncertain state estimation.  SLAM techniques take advantage of the idea that feedback from both processes can reinforce each other at each step of an iterative state estimation; in fact, SLAM's model states that it is impossible in practice to separate the two.
+
+Since, in theory, accurate localization can not be achieved without an accurate map on which to localize, and an undistorted map cannot be created without an accurate statement of present localization, the SLAM problem is iterative in practice.  From some starting conditions, better estimates of both are converged towards over time and subsequent observations.
 
 SLAM is an active research topic with several current approaches, including various varieties of Kalman filtering (linear, extended, unscented), particle filtering, smoothing, and others.  The implementation we chose is based on a linear Kalman filter.
 
@@ -129,6 +125,18 @@ The matrix definitions are as follows:
     x:& \text{ System state}\\
     Q:& \text{ Motion covariance / uncertainty}
 \end{align*}
+
+\section{Model}
+
+The problem that our model addresses is that of a robot entering an unknown area but searching for known landmarks within it.  However, while it is able to recognize the landmarks upon sensing them, it still does not know what their absolute positions are \- only the positions relative to itself and what it has already mapped.
+
+For analogy, consider a person walking into the Louvre museum without a map.  He does not know much about art and doesn't know where any paintings are within the museum.  However, he knows what the famous ones look like and when he sees the Mona Lisa he recognizes it immediately. If he has been tracing his steps from the beginning, can give a position for the painting relative to the museum's entry point.  If he later comes across the Venus de Milo, he can relate its position to both the Mona Lisa and his entry point.  (Of course, if he daydreamed while walking to the Mona Lisa and wasn't sure about how many steps he actually took, all of the relative positions will be slightly off.)
+
+This is similar to the model we are exploring here, with the Louvre standing in for an unknown area, the famous artworks being landmarks, and the robot daydreaming representing an odometry error.  It could be applicable to a variety of robotic exploration scenarios; for instance, search-and-rescue operations.
+
+In order to focus on the main problem, we abstracted away certain details in our simulation.  In particular, we assume that when a robot senses a known landmark, it can identify it immediately and without error.  Normally there would be some uncertainty involved in, say, a vision sensor identifying visual features, but for simplicity we did not consider this in our model.
+
+In addition, our motion and sensor models are simplified as described in the next section.
 
 \section{Implementation}
 
