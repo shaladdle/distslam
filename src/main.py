@@ -20,7 +20,6 @@ class Cobot:
 
         self.lm_ids = []
         self.P = P
-        self.reverse = False
         self.lock = Lock()
         if u is None:
             self.u = np.zeros((3, 1))
@@ -28,7 +27,6 @@ class Cobot:
             self.x = np.zeros((3,1))
             self.x[0][0] = random.randrange(50, width-50)
             self.x[1][0] = random.randrange(50, width-50)
-            self.x[2][0] = 0
 
     def add_new_landmarks(self, meas):
         xtmp = self.x.copy()
@@ -433,8 +431,8 @@ def getQ(x, u):
     if (noopu == u).all():
         return ret
 
-    global noise_xy, noise_t
-    variances = (noise_xy, noise_xy, noise_t)
+    global noise_xy
+    variances = (noise_xy, noise_xy)
     variances = [v * abs(delta) for v, [delta] in zip(variances, u[:3])]
     print('variances: {}\n'.format(variances))
 
@@ -488,13 +486,12 @@ def getF(x):
 def main():
     global width, height, lm, \
             meas_uncertainty, nextident, \
-            noise_xy, noise_t, noise_s
+            noise_xy, noise_s
     nextident = 0
     meas_uncertainty = 10
     width = 800
     height = 800
     noise_xy = .05
-    noise_t = .00001
     noise_s = 1
     win = g.GraphWin('SLAM Simulator', width, height)
 
@@ -514,7 +511,7 @@ def main():
     cobot_sim = []
     for _ in range(numbots):
         cobot = Cobot(P)
-        sim = Simulator(win, g.Point(cobot.x[0,0], height - cobot.x[1,0]), - cobot.x[2,0], width, height)
+        sim = Simulator(win, g.Point(cobot.x[0,0], height - cobot.x[1,0]), width, height)
         sim.set_landmarks(lm)
         cobot_sim.append((cobot, sim))
 
@@ -538,11 +535,9 @@ def main():
             with cobot.lock:
                 local_u = cobot.u.copy()
                 local_x = cobot.x.copy()
-                local_reverse = cobot.reverse
 
-            global noise_xy, noise_t, noise_s, height
-            meas, simx = sim.do_motors(local_u, cobot.reverse,
-                    noise_xy, noise_t, noise_s)
+            global noise_xy, noise_s, height
+            meas, simx = sim.do_motors(local_u, noise_xy, noise_s)
             print('robot_pos: ({}, {})\n'.format(sim.robot_pos.x, height - sim.robot_pos.y))
             # add previously unseen landmarks to the state
             try:
@@ -595,34 +590,26 @@ def main():
         def go(event):
             # set velocities
             with cobot.lock:
-                if event.keysym in ('Up', 'w', 'Down', 's'):
-                    cobot.u[0][0] = 25 * cos(cobot.x[2][0])
-                    cobot.u[1][0] = 25 * sin(cobot.x[2][0])
-                    cobot.u[2][0] = 0
-                    if event.keysym in ('Up', 'w'):
-                        cobot.reverse = False
-                    elif event.keysym in ('Down', 's'):
-                        cobot.u[0][0] *= -1
-                        cobot.u[1][0] *= -1
-                        cobot.reverse = True
-                    else:
-                        raise BadEventException('event {} not recognized'.format(event))
-
-                elif event.keysym in ('Left', 'Right', 'a', 'd'):
+                if event.keysym in ('Up', 'w'):
                     cobot.u[0][0] = 0
+                    cobot.u[1][0] = 25
+                elif event.keysym in ('Down', 's'):
+                    cobot.u[0][0] = 0
+                    cobot.u[1][0] = -25
+                elif event.keysym in ('Left', 'a'):
+                    cobot.u[0][0] = -25
                     cobot.u[1][0] = 0
-                    if event.keysym in ('Left', 'a'):
-                        cobot.u[2][0] = 0.15
-                    elif event.keysym in ('Right', 'd'):
-                        cobot.u[2][0] = -0.15
-                    else:
-                        raise BadEventException('event {} not recognized'.format(event))
+                elif event.keysym in ('Right', 'd'):
+                    cobot.u[0][0] = 25
+                    cobot.u[1][0] = 0
+                else:
+                    raise BadEventException('event {} not recognized'.format(event.keysym))
         return go
 
     def makeStop(cobot):
         def stop(event):
             with cobot.lock:
-                cobot.u = np.zeros((3,1))
+                cobot.u = np.zeros((2,1))
         return stop
 
     cobots = list(zip(*cobot_sim))[0]
