@@ -405,9 +405,23 @@ Individual robots are able to perform SLAM reliably.  When sensing a new landmar
 
 The robot's estimation of its own position is partly a function of the uncertainty encoded into the odometry.  With a reasonable level of odometry error, the robot gradually loses track of its position over time if it travels a distance without sensing any landmarks, which is the expected result.
 
-One problem we encountered was with numerical instability.  When setting the uncertainty matrices to levels at or near zero, the robots' measurements tended to become unreliable.  
+\begin{figure}[h!]
+\includegraphics[width=\textwidth]{update1.png}
+\caption{After sensing a new landmark for the first time.  The robot's incomplete sight lines are an artifact of screen flicker.}
+\label{fig:update1}
+\end{figure}
 
-XXXXXXXXXXXXXXXXXXXXXXXXXXX PUT SOME NUMBERS HERE OR SOMETHING
+These results can be seen in Figures~\ref{fig:update1} and~\ref{fig:update2}.  In Figures~\ref{fig:update1}, the robot has observed several previous landmarks and traveled a small distance away from them where it has observed landmark 22.  The previously-observed landmarks appear with a high degree of certainty in their position estimate.  However, due to odometry error while traveling through landmark-free space, the robot has slightly lost track of its current position, and when it encounters landmark 22, its prediction of its relative location is off by the same error factor.
+
+\begin{figure}[h!]
+\includegraphics[width=\textwidth]{update2.png}
+\caption{After returning to previously observed landmarks.}
+\label{fig:update2}
+\end{figure}
+
+In Figures~\ref{fig:update1}, the robot has moved back toward landmarks that it had observed previously (numbers 12 and 19).  Once it makes a new observation of these landmarks, both its estimate of its current location and its estimate of landmark 22's location become more accurate, and with higher certainty.
+
+One problem we encountered was with numerical instability.  When setting the uncertainty matrices to levels at or near zero, the robots' measurements tended to become unreliable.  
 
 \subsection{Multiple Robots}
 
