@@ -160,7 +160,7 @@ We assume a simple linear system with gaussian transition and sensor noise.  Cov
 
 We utilized Python and NumPy and for our numerical calculations and the Tkinter graphical framework to visualize our simulation.
 
-Figure~\ref{fig:simulation} shows a screenshot of the simulation.  The rectangles are robots, and the lines coming out of them represent the extent of their sensors.  The black circles represent unique landmarks.  The blue and red circles around or inside landmarks are the robots' estimations of where the landmarks are; the size of the circle represents its uncertainty about the landark's exact position, with a larger circle representing more uncertainty.
+Figure~\ref{fig:simulation} shows a screenshot of the simulation.  The rectangles are robots, and the lines coming out of them represent the extent of their sensors.  The black circles represent unique landmarks.  The blue and red circles around or inside landmarks are the robots' estimations of where the landmarks are; the size of the circle represents their uncertainty about the landark's exact position, with a larger circle representing more uncertainty.
 
 \begin{figure}[h!]
 \includegraphics[width=\textwidth]{screenshot.png}
@@ -309,7 +309,7 @@ This takes into account the fact that our robot may not move exactly how it expe
 
 \subsection{Measurement Model}
 
-Since our measurements are relative position between the motors and the landmarks, the $H$ matrix in the measurement model must express that. The relative sensor measurement is
+Since our measurements are relative a position between the motors and the landmarks, the $H$ matrix in the measurement model must express that. The relative sensor measurement is
 
 $$
 z = 
@@ -353,7 +353,7 @@ $$
 
 This $H$ matrix properly computes the relative measurement from the state's absolute positions.
 
-The final piece of the measurement model is the covariance matrix of the measurement noise $w$, $R$. We set $R$ such that the variances of the relative landmark measurements are equal to our approximate sensor error, which is about 5\% of the max sensor range. So the for a measurement
+The final piece of the measurement model is the covariance matrix of the measurement noise $w$, $R$. We set $R$ such that the variances of the relative landmark measurements are equal to our approximate sensor error, which is about 5\% of the max sensor range. So for a measurement
 
 $$
 z
@@ -426,7 +426,7 @@ where there are only 2 robots, $[1]$ indicates an identity matrix of size $2\tim
 
 Individual robots are able to perform SLAM reliably.  When sensing a new landmark, a robot adds the landmark to its list of those encountered with an initial estimation of its location, relative to its own.  This estimate improves as the robot encounters other nearby landmarks, and continues to improve if the robot returns to perceive the landmark again.
 
-The robot's estimation of its own position is partly a function of the uncertainty encoded into the odometry.  With a reasonable level of odometry error, the robot gradually loses track of its position over time if it travels a distance without sensing any landmarks, which is the expected result. This effect is shown in Figure \ref{fig:waypoints}, with the robot having low uncertainty (signified by the thickness of the trail) when it is within range of landmarks, and high uncertainty when it cannot see landmarks. When the robot sees a new group of landmarks again, they appropriately off due to the cumulative error of the robot.
+The robot's estimation of its own position is partly a function of the uncertainty encoded into the odometry.  With a reasonable level of odometry error, the robot gradually loses track of its position over time if it travels a distance without sensing any landmarks, which is the expected result. This effect is shown in Figure \ref{fig:waypoints}, with the robot having low uncertainty (signified by the thickness of the trail) when it is within range of landmarks, and high uncertainty when it cannot see landmarks. When the robot sees a new group of landmarks again, they are appropriately off due to the cumulative error of the robot.
 
 \begin{figure}[h!]
 \includegraphics[width=\textwidth]{waypoints.png}
@@ -440,7 +440,7 @@ The robot's estimation of its own position is partly a function of the uncertain
 \label{fig:update1}
 \end{figure}
 
-These results can be seen in Figures~\ref{fig:update1} and~\ref{fig:update2}.  In Figures~\ref{fig:update1}, the robot has observed several previous landmarks and traveled a small distance away from them where it has observed landmark 22.  The previously-observed landmarks appear with a high degree of certainty in their position estimate.  However, due to odometry error while traveling through landmark-free space, the robot has slightly lost track of its current position, and when it encounters landmark 22, its prediction of its relative location is off by the same error factor.
+These results can be seen in Figures~\ref{fig:update1} and~\ref{fig:update2}.  In Figure~\ref{fig:update1}, the robot has observed several previous landmarks and traveled a small distance away from them where it has observed landmark 22.  The previously-observed landmarks appear with a high degree of certainty in their position estimate.  However, due to odometry error while traveling through landmark-free space, the robot has slightly lost track of its current position, and when it encounters landmark 22, its prediction of its relative location is off by the same error factor.
 
 \begin{figure}[h!]
 \includegraphics[width=\textwidth]{update2.png}
@@ -448,13 +448,13 @@ These results can be seen in Figures~\ref{fig:update1} and~\ref{fig:update2}.  I
 \label{fig:update2}
 \end{figure}
 
-In Figures~\ref{fig:update1}, the robot has moved back toward landmarks that it had observed previously (numbers 12 and 19).  Once it makes a new observation of these landmarks, both its estimate of its current location and its estimate of landmark 22's location become more accurate, and with higher certainty.
+In Figure~\ref{fig:update1}, the robot has moved back toward landmarks that it had observed previously (numbers 12 and 19).  Once it makes a new observation of these landmarks, both its estimate of its current location and its estimate of landmark 22's location become more accurate, and with higher certainty.
 
-One problem we encountered was with numerical instability.  When setting the uncertainty matrices to levels at or near zero, the robots' measurements tended to become unreliable.  
+One problem we encountered was with numerical instability.  When setting the uncertainty matrices to levels at or near zero, the robots' measurements tended to become unreliable.  One potential cause of the numerical instability may be the matrix inversions performed during the Kalman update step.  These operations seem in some cases to cause negative Kalman gain.  We attempted several methods of eliminating this problem, but were unable to find a solution to this point.
 
 \subsection{Multiple Robots}
 
-Multiple robots working in the same area individually are able function without problems, but joining their results into a distributed framework has proven to be less successful so far.
+Multiple robots working in the same area individually are able function without problems, but joining their results into a distributed framework has proven to be less successful so far.  The numerical errors described above are one difficulty in combining results in a robust way, and we continue to work on finding a good solution.
 
 \section{Future Work}
 
