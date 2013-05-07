@@ -45,8 +45,6 @@ class Simulator:
         self.sense_noise = 0.0
 
         self.sense_max = 100
-        self.sense_fov = 2 * pi / 3
-        self.fov_markers = []
 
         # Start the robot at some provided position, and start it with
         # a heading of 0 (should be pointing east)
@@ -73,13 +71,13 @@ class Simulator:
     def do_motors(self, u, noise_xy, noise_s):
         u = np.array(u)
         noise = []
-        for [delta], n in zip(u[:3], (noise_xy, noise_xy)):
+        for [delta], n in zip(u[:2], (noise_xy, noise_xy)):
             if delta == 0 or 0 == n:
                 noise.append(0)
             else:
                 noise.append(np.random.normal(0, sqrt(abs(delta * n))))
 
-        u += np.matrix(noise).reshape((3, 1))
+        u += np.matrix(noise).reshape((2, 1))
         math_dx, math_dy = (d for [d] in u[:2])
         math_dy = u[1][0]
         math_x = self.robot_pos.x + math_dx
