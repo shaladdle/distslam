@@ -357,8 +357,8 @@ class EstimateDrawer:
         self.states = []
 
         colors = ["red", "blue"]
-        lm_scale = 5
-        r_scale = 5
+        lm_scale = 1
+        r_scale = 1
         for (x, P), color in zip(states, colors):
             x = np.array(x)
             P = np.array(P)
@@ -370,6 +370,7 @@ class EstimateDrawer:
             rpoint2 = g.Point(rx + covx, height - (ry + covy))
             r = g.Oval(rpoint1, rpoint2)
             r.setOutline(color)
+            print('drawing {} robot at ({}, {})'.format(color, rx, ry))
             r.draw(self.win)
 
             t_scale = (covx + covy) / 2
@@ -400,53 +401,26 @@ def kalman_predict(F, G, Q, P, x, u):
     print('F:\n{}\nG:\n{}\nQ:\n{}\nP:\n{}\nx:\n{}\nu:\n{}\n'.format(F, G, Q, P, x, u))
     x_p = F * x + G * u
     P_p = F * P * F.transpose() + Q
-    sleep(5)
+    print('predicted x:\n{}\n\npredicted P:\n{}\n'.format(x_p, P_p))
     return (x_p, P_p)
 
 def kalman_update(H, R, P, x, z):
+    print('#################################\n          kalman_update\n')
     #print("kalman update")
+    print('inputs:\n')
     print('H:\n{}\nR:\n{}\nP\n{}\nx:{}\nz:{}\n'.format(H, R, P, x, z))
     v = z - H * x
-    print('v:\n{}'.format(v))
-    #print("H")
-    #print(H)
-    #print("z")
-    #print(z)
-    #print("x")
-    #print(x)
-    #print("H*x")
-    #print(H * x)
+    print('calculated v:\n{}'.format(v))
     S = H * P * H.transpose() + R
-    print('S:\n{}'.format(S))
-    #print("S")
-    #print(S)
-    if not S.any():
-        return x, P
+    print('calculated S:\n{}'.format(S))
     W = P * H.transpose() * np.linalg.inv(S)
-    #print("y")
-    #print(y)
-    #print("K*y")
-    #print(K * y)
-    #if np.linalg.norm(K*y) > 100:
-    #    print(np.linalg.norm(K*y))
-    #    print("S")
-    #    print(S)
-    #    print("H")
-    #    print(H)
-    #    print("x")
-    #    print(x)
-    #    print("z")
-    #    print(z)
-    #    print("y")
-    #    print(y)
-    #    print("K")
-    #    print(K)
-    #    print("K*y")
-    #    print(K*y)
-    #    print()
+    print('updated W:\n{}\n'.format(W))
+    print('1 - W * H:\n{}\n'.format(np.identity(W.shape[0]) - W * H))
     x = x + W * v
     print('updated x:\n{}\n'.format(x))
-    P = P - W*S*W.transpose()#(np.identity(K.shape[0]) - K * H) * P
+    #P = P - W*S*W.transpose()#(np.identity(K.shape[0]) - K * H) * P
+    P = (np.identity(W.shape[0]) - W * H) * P
+    print('updated P:\n{}\n'.format(P))
     return x, P
 
 def getQ(x, u):
@@ -549,12 +523,17 @@ def main():
     ed.draw((cobot.x, cobot.P) for cobot, _ in cobot_sim)
 
     def timestep():
+        global time
+        print('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n         TIMESTEP {}'.format(time))
+        time += 1
         # Close the application if someone closes the graphics window
         if win.isClosed():
             return
 
         local_states = []
-        for cobot, sim in cobot_sim:
+        for robot_i, (cobot, sim) in enumerate(cobot_sim):
+            print('***********************')
+            print('robot {}\n'.format(robot_i))
             # startup
             with cobot.lock:
                 local_u = cobot.u.copy()
@@ -584,6 +563,7 @@ def main():
             F = getF(local_x)
             G = getG(local_x, local_u)
             local_x, local_P = kalman_predict(F, G, Q, local_P, local_x, local_u)
+            print('updated x:\n{}\n\nupdated P:\n{}\n'.format(local_x, local_P))
             
             if meas:
                 try:
@@ -667,6 +647,11 @@ def main():
     win.bind("<KeyRelease-Down>", stop)
     win.bind("<KeyRelease-Left>", stop)
     win.bind("<KeyRelease-Right>", stop)
+
+    #timestep
+    global time
+    time = 0
+    win.bind("<KeyRelease-1>", lambda e: timestep())
     win.pack()
     win.focus_set()
 
@@ -675,9 +660,7 @@ def main():
     ed2 = EstimateDrawer(win)
     iters = 0
     while True:
-        timestep()
-
-        sleep(0.05)
+        win.update()
 
 if __name__ == "__main__":
     main()
