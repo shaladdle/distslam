@@ -159,7 +159,7 @@ We assume a simple linear system with gaussian transition and sensor noise.  Cov
 
 We utilized Python and NumPy and for our numerical calculations and the Tkinter graphical framework to visualize our simulation.
 
-Figure~\ref{fig:simulation} shows a screenshot of the simulation.  The black circles represent unique landmarks.  The blue and red circles around or inside landmarks are the robots' estimations of where the landmarks are; the size of the circle represents its uncertainty about the landark's exact position, with a larger circle representing more uncertainty.
+Figure~\ref{fig:simulation} shows a screenshot of the simulation.  The rectangles are robots, and the lines coming out of them represent the extent of their sensors.  The black circles represent unique landmarks.  The blue and red circles around or inside landmarks are the robots' estimations of where the landmarks are; the size of the circle represents its uncertainty about the landark's exact position, with a larger circle representing more uncertainty.
 
 \begin{figure}[h!]
 \includegraphics[width=\textwidth]{screenshot.png}
@@ -303,11 +303,33 @@ This $H$ matrix properly computes the relative measurement from the state's abso
 
 The most basic approach to distributed SLAM is to assume that communication is always on, and just propagate all measurements and motion commands to every robot. This is simple, but can be computationally expensive, and wastes a lot of compute on each robot combining the same measurements into the covariance matrix.
 
-Our approach is to use another Kalman filter, where the state transition model takes into account the new poses of the robots, and the measurement equation takes into account 
+Our approach is to use another Kalman filter, where the state transition model takes into account the new poses of the robots, and the measurement equation takes into account
+
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 with just an update step and no prediction.  Each robot's state vector is treated as a measurement and the covariance as the measurement noise. The resulting estimates are fed back into each robot at each iteration.
 
 \section{Results}
+
+\subsection{Individual Robots}
+
+Individual robots are able to perform SLAM reliably.  When sensing a new landmark, a robot adds the landmark to its list of those encountered with an initial estimation of its location, relative to its own.  This estimate improves as the robot encounters other nearby landmarks, and continues to improve if the robot returns to perceive the landmark again.
+
+The robot's estimation of its own position is partly a function of the uncertainty encoded into the odometry.  With a reasonable level of odometry error, the robot gradually loses track of its position over time if it travels a distance without sensing any landmarks, which is the expected result.
+
+One problem we encountered was with numerical instability.  When setting the uncertainty matrices to levels at or near zero, the robots' measurements tended to become unreliable.  
+
+XXXXXXXXXXXXXXXXXXXXXXXXXXX PUT SOME NUMBERS HERE OR SOMETHING
+
+\subsection{Multiple Robots}
+
+Multiple robots working in the same area individually are able function without problems, but joining their results into a distributed framework has proven to be less stable so far.
+
+
+
+\section{Future Work}
+
+In addition to fine-tuning the distributed aspect of the project, we would like to apply our implementation to real robots in a real environment.
 
 \begin{thebibliography}{12}
     \bibitem{thrun2005}
